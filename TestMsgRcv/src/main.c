@@ -11,7 +11,7 @@
 #include <arpa/inet.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
-#include "common.h"
+#include "msg_common.h"
 
 static void send_local_quit(void) {
     int fd = socket(AF_INET, SOCK_DGRAM, 0);

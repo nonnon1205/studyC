@@ -19,6 +19,7 @@ int main() {
 
     // 前準備
     sigemptyset(&set);
+    sigaddset(&set, SIGTERM);
     sigaddset(&set, SIGINT);
     sigaddset(&set, SIGUSR1);
     pthread_sigmask(SIG_BLOCK, &set, NULL);
@@ -29,7 +30,7 @@ int main() {
 
     pthread_create(&t_udp, NULL, udp_worker, (void *)&ctx);
     pthread_create(&t_ipc, NULL, ipc_worker, (void *)&ctx);
-    pthread_create(&t_sig, NULL, signal_worker, (void *)&ctx);
+    pthread_create(&t_sig, NULL, signal_worker, (void *)&set);
 
     // いずれかのルートで終了フラグが立つのを待つ
     pthread_mutex_lock(&ctx.mtx);

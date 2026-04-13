@@ -14,8 +14,8 @@ void* signal_worker(void* arg) {
 
     while (1) {
         sigwait(set, &sig);
-        if (sig == SIGINT) {
-            printf("\n[Signal Thread] SIGINTを受信。終了します。\n");
+        if (sig == SIGINT || sig == SIGTERM || sig == SIGUSR1) {
+            printf("\n[Signal Thread] %sを受信。終了します。\n", sig == SIGINT ? "SIGINT" : "SIGTERM");
             exit(0);
         }
     }

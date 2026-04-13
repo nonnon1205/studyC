@@ -1,8 +1,8 @@
 # 変数の定義
 CC      = gcc
 CFLAGS  = -Wall -Wextra -g -pthread -Iinclude -I../SHM/include
-TARGET  = threadText
-SRCS    = src/main.c src/udp_worker.c src/ipc_worker.c src/signal_thread.c src/unified_mq_system.c
+TARGET  = threadTest
+SRCS    = src/main.c src/udp_worker.c src/ipc_worker.c src/signal_thread.c
 LDFLAGS = -L../lib
 LDLIBS  = -lshm
 

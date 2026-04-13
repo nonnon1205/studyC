@@ -9,7 +9,7 @@
 #include <netinet/in.h>
 #include <sys/msg.h>
 #include <sys/ipc.h>
-#include "common.h"
+#include "udp_common.h"
 
 // --- 1. UDPスレッド ---
 void* udp_worker(void* arg) {
@@ -17,7 +17,7 @@ void* udp_worker(void* arg) {
     struct sockaddr_in servaddr, cliaddr;
     char buffer[1024];
     socklen_t len;
-
+    
     ctx->udp_fd = socket(AF_INET, SOCK_DGRAM, 0);
     memset(&servaddr, 0, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
@@ -38,6 +38,10 @@ void* udp_worker(void* arg) {
 
         if (strncmp(buffer, "QUIT", 4) == 0) {
             printf("[UDP] 終了メッセージを受信。ループを抜けます。\n");
+            pthread_mutex_lock(&ctx->mtx);
+            ctx->shutdown_requested = 1;
+            pthread_cond_signal(&ctx->cond);
+            pthread_mutex_unlock(&ctx->mtx);
             break;
         }
     }

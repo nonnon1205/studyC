@@ -6,7 +6,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include <unistd.h>
-#include "common.h"
+#include "msg_common.h"
 
 // --- 2. シグナルスレッド (正規化してキューへ) ---
 void* signal_worker(void* arg) {

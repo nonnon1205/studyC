@@ -1,2 +1,2 @@
-obj/main.o: src/main.c include/common.h
-include/common.h:
+obj/main.o: src/main.c src/msg_common.h
+src/msg_common.h:

@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include "common.h"
+#include "msg_common.h"
 
 // --- 1. UDPスレッド (正規化してキューへ) ---
 void* udp_worker(void* arg) {
