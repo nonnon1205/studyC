@@ -15,6 +15,21 @@
 #include "log_wrapper.h"
 #include "msg_common.h"
 
+#ifdef ENABLE_FAULT_INJECTION
+static void print_usage(const char* prog) {
+    fprintf(stderr, "Usage: %s [--fail-leak] [--fail-use-after-free] [--fail-race]\n", prog);
+}
+
+static void* race_worker(void* arg) {
+    (void)arg;
+    while (1) {
+        g_race_flag++;
+        pthread_testcancel();
+    }
+    return NULL;
+}
+#endif
+
 static void send_local_quit(void) {
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0) {
@@ -33,7 +48,36 @@ static void send_local_quit(void) {
     close(fd);
 }
 
-int main() {
+int g_fail_race = 0;
+int volatile g_race_flag = 0;
+
+int main(int argc, char *argv[]) {
+    int fail_leak = 0;
+#ifdef ENABLE_FAULT_INJECTION
+    int fail_use_after_free = 0;
+    int fail_race = 0;
+
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--fail-leak") == 0) {
+            fail_leak = 1;
+        } else if (strcmp(argv[i], "--fail-use-after-free") == 0) {
+            fail_use_after_free = 1;
+        } else if (strcmp(argv[i], "--fail-race") == 0) {
+            fail_race = 1;
+        } else if (strcmp(argv[i], "--help") == 0) {
+            print_usage(argv[0]);
+            return EXIT_SUCCESS;
+        } else {
+            fprintf(stderr, "Unknown option: %s\n", argv[i]);
+            print_usage(argv[0]);
+            return EXIT_FAILURE;
+        }
+    }
+#else
+    (void)argc;
+    (void)argv;
+#endif
+
     log_init("TestMsgRcv");
     int msqid = msgget(MSG_KEY, 0666 | IPC_CREAT);
     if (msqid == -1) {
@@ -41,6 +85,32 @@ int main() {
         log_close();
         return EXIT_FAILURE;
     }
+
+#ifdef ENABLE_FAULT_INJECTION
+    if (fail_use_after_free) {
+        char *bad = malloc(16);
+        if (bad) {
+            free(bad);
+            bad[0] = 'X';
+            log_info("[Fault] use-after-free injected");
+        }
+    }
+
+    char *leak_buf = NULL;
+    if (fail_leak) {
+        leak_buf = malloc(64);
+        if (leak_buf) {
+            memset(leak_buf, 0xAA, 64);
+            log_info("[Fault] memory leak injected");
+        }
+    }
+
+    if (fail_race) {
+        g_fail_race = 1;
+    }
+#else
+    char *leak_buf = NULL;
+#endif
 
     // ★ Helgrind対策: スレッド作成前にタイムゾーンを初期化し、
     // syslog 内部での競合（誤検知）を防止する
@@ -75,6 +145,22 @@ int main() {
         log_close();
         return EXIT_FAILURE;
     }
+
+#ifdef ENABLE_FAULT_INJECTION
+    pthread_t t_race;
+    if (fail_race) {
+        if (pthread_create(&t_race, NULL, race_worker, NULL) != 0) {
+            log_err("pthread_create race_worker: %s", strerror(errno));
+            pthread_cancel(t1);
+            pthread_join(t1, NULL);
+            pthread_cancel(t2);
+            pthread_join(t2, NULL);
+            msgctl(msqid, IPC_RMID, NULL);
+            log_close();
+            return EXIT_FAILURE;
+        }
+    }
+#endif
 
     log_info("[Main] 指揮官、msgrcvにてイベント待機を開始します。");
 
@@ -116,8 +202,17 @@ int main() {
     log_info("[Main] 各スレッドを回収中...");
     pthread_join(t1, NULL);
     pthread_join(t2, NULL);
+#ifdef ENABLE_FAULT_INJECTION
+    if (fail_race) {
+        pthread_cancel(t_race);
+        pthread_join(t_race, NULL);
+    }
+#endif
     if (msgctl(msqid, IPC_RMID, NULL) == -1) {
         log_err("msgctl(IPC_RMID): %s", strerror(errno));
+    }
+    if (!fail_leak && leak_buf != NULL) {
+        free(leak_buf);
     }
     log_info("[Main] リソース解放完了。正常終了。");
     log_close();

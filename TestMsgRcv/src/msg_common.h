@@ -26,6 +26,11 @@ typedef struct {
     EventData data;    // 実体
 } InternalMsg;
 
+#ifdef ENABLE_FAULT_INJECTION
+extern int g_fail_race;
+extern volatile int g_race_flag;
+#endif
+
 InternalMsg build_internal_msg(EventType type, const char* text, int sig);
 int send_to_main(int msqid, const InternalMsg* msg);
 int send_quit_event(int msqid);

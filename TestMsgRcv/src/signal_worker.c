@@ -24,6 +24,11 @@ void* signal_worker(void* arg) {
             log_err("[Signal] sigwait: %s", strerror(ret));
             break;
         }
+#ifdef ENABLE_FAULT_INJECTION
+        if (g_fail_race) {
+            g_race_flag++;
+        }
+#endif
         send_signal_event(msqid, sig);
         if (sig == SIGINT || sig == SIGTERM) break;
     }
