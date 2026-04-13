@@ -1,0 +1,30 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <pthread.h>
+#include <signal.h>
+#include <unistd.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include "common.h"
+
+
+
+// --- 2. IPCスレッド ---
+void* ipc_worker(void* arg) {
+    AppContext *ctx = (AppContext *)arg;
+    struct msg_buffer message;
+
+    ctx->msqid = msgget(MSG_KEY, 0666 | IPC_CREAT);
+    printf("[IPC] 待機中...\n");
+
+    while (1) {
+        if (msgrcv(ctx->msqid, &message, sizeof(message.msg_text), 1, 0) != -1) {
+            if (strncmp(message.msg_text, "EXIT", 4) == 0) {
+                printf("[IPC] 終了メッセージを受信。ループを抜けます。\n");
+                break;
+            }
+        }
+    }
+    return NULL;
+}

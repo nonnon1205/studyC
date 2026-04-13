@@ -1,0 +1,31 @@
+#define _POSIX_C_SOURCE 200809L
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+#include <pthread.h>
+#include <signal.h>
+#include <unistd.h>
+#include "common.h"
+
+// --- 2. シグナルスレッド (正規化してキューへ) ---
+void* signal_worker(void* arg) {
+    int msqid = *(int*)arg;
+    sigset_t set;
+    int sig;
+    sigemptyset(&set);
+    sigaddset(&set, SIGINT);
+    sigaddset(&set, SIGTERM);
+
+    while (1) {
+        int ret = sigwait(&set, &sig);
+        if (ret != 0) {
+            errno = ret;
+            perror("sigwait");
+            break;
+        }
+        send_to_main(msqid, EV_SIGNAL, NULL, sig);
+        if (sig == SIGINT || sig == SIGTERM) break;
+    }
+    return NULL;
+}
