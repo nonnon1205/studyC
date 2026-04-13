@@ -3,7 +3,7 @@ CFLAGS = -Wall -Wextra -g -pthread -Iinclude -I../SHM/include -MMD -MP
 TARGET = TestMsgRcv
 SRCDIR = src
 OBJDIR = obj
-SRCS = $(SRCDIR)/main.c $(SRCDIR)/udp_worker.c $(SRCDIR)/signal_worker.c $(SRCDIR)/common.c
+SRCS = $(SRCDIR)/main.c $(SRCDIR)/udp_worker.c $(SRCDIR)/signal_worker.c $(SRCDIR)/common.c $(SRCDIR)/log_wrapper.c
 OBJS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SRCS))
 
 LIBDIRNAME  = ../lib
