@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <sys/msg.h>
@@ -31,7 +32,7 @@ int send_to_main(int msqid, const InternalMsg* msg) {
         return -1;
     }
     if (msgsnd(msqid, msg, sizeof(InternalMsg) - sizeof(long), 0) == -1) {
-        syslog(LOG_ERR, "msgsnd: %s", strerror(errno));
+        syslog(LOG_ERR, "TestMsgRcv: [Common] msgsnd: %s", strerror(errno));
         return -1;
     }
     return 0;

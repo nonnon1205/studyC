@@ -21,7 +21,7 @@ void* signal_worker(void* arg) {
     while (1) {
         int ret = sigwait(&set, &sig);
         if (ret != 0) {
-            syslog(LOG_ERR, "sigwait: %s", strerror(ret));
+            syslog(LOG_ERR, "TestMsgRcv: [Signal] sigwait: %s", strerror(ret));
             break;
         }
         send_signal_event(msqid, sig);
