@@ -24,7 +24,7 @@ void* signal_worker(void* arg) {
             perror("sigwait");
             break;
         }
-        send_to_main(msqid, EV_SIGNAL, NULL, sig);
+        send_signal_event(msqid, sig);
         if (sig == SIGINT || sig == SIGTERM) break;
     }
     return NULL;

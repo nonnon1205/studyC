@@ -43,10 +43,10 @@ void* udp_worker(void* arg) {
 
         buf[n] = '\0';
         if (strncmp(buf, "QUIT", 4) == 0) {
-            send_to_main(msqid, EV_QUIT, NULL, 0);
+            send_quit_event(msqid);
             break;
         }
-        send_to_main(msqid, EV_UDP, buf, 0);
+        send_udp_event(msqid, buf);
     }
 
     close(fd);

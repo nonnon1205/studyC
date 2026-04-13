@@ -7,8 +7,8 @@
 #include <sys/msg.h>
 #include "msg_common.h"
 
-// --- ヘルパー：内部キューへ送信 ---
-void send_to_main(int msqid, EventType type, const char* text, int sig) {
+// --- ヘルパー：内部メッセージ構築 ---
+InternalMsg build_internal_msg(EventType type, const char* text, int sig) {
     InternalMsg msg;
     memset(&msg, 0, sizeof(msg));
     msg.mtype = MSG_TYPE;
@@ -21,8 +21,32 @@ void send_to_main(int msqid, EventType type, const char* text, int sig) {
     if (sig) {
         msg.data.sig_num = sig;
     }
+    return msg;
+}
 
-    if (msgsnd(msqid, &msg, sizeof(InternalMsg) - sizeof(long), 0) == -1) {
-        perror("msgsnd");
+// --- ヘルパー：内部キューへ送信 ---
+int send_to_main(int msqid, const InternalMsg* msg) {
+    if (msg == NULL) {
+        return -1;
     }
+    if (msgsnd(msqid, msg, sizeof(InternalMsg) - sizeof(long), 0) == -1) {
+        perror("msgsnd");
+        return -1;
+    }
+    return 0;
+}
+
+int send_quit_event(int msqid) {
+    InternalMsg msg = build_internal_msg(EV_QUIT, NULL, 0);
+    return send_to_main(msqid, &msg);
+}
+
+int send_udp_event(int msqid, const char* payload) {
+    InternalMsg msg = build_internal_msg(EV_UDP, payload, 0);
+    return send_to_main(msqid, &msg);
+}
+
+int send_signal_event(int msqid, int sig) {
+    InternalMsg msg = build_internal_msg(EV_SIGNAL, NULL, sig);
+    return send_to_main(msqid, &msg);
 }

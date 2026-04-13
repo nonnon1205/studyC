@@ -24,6 +24,12 @@ $(OBJDIR):
 	mkdir -p $(OBJDIR)
 
 clean:
-	rm -rf $(OBJDIR) $(TARGET)
+	rm -rf $(OBJDIR) $(TARGET) test_common
 
 -include $(OBJS:.o=.d)
+
+test: test_common
+	./test_common
+
+test_common: tests/test_common.c
+	$(CC) $(CFLAGS) -o $@ $^

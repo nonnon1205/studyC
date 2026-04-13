@@ -26,7 +26,11 @@ typedef struct {
     EventData data;    // 実体
 } InternalMsg;
 
-void send_to_main(int ,EventType, const char*,int);
+InternalMsg build_internal_msg(EventType type, const char* text, int sig);
+int send_to_main(int msqid, const InternalMsg* msg);
+int send_quit_event(int msqid);
+int send_udp_event(int msqid, const char* payload);
+int send_signal_event(int msqid, int sig);
 void* udp_worker(void* arg);
 void* signal_worker(void* arg);
 
