@@ -6,6 +6,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include <unistd.h>
+#include <syslog.h>
 #include "msg_common.h"
 
 // --- 2. シグナルスレッド (正規化してキューへ) ---
@@ -20,8 +21,7 @@ void* signal_worker(void* arg) {
     while (1) {
         int ret = sigwait(&set, &sig);
         if (ret != 0) {
-            errno = ret;
-            perror("sigwait");
+            syslog(LOG_ERR, "sigwait: %s", strerror(ret));
             break;
         }
         send_signal_event(msqid, sig);

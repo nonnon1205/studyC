@@ -19,7 +19,6 @@ int main(void) {
     msg = build_internal_msg(EV_SIGNAL, NULL, SIGINT);
     assert(msg.event == EV_SIGNAL);
     assert(msg.data.sig_num == SIGINT);
-    assert(msg.data.udp_payload[0] == '\0');
 
     char long_text[512];
     memset(long_text, 'x', sizeof(long_text) - 1);

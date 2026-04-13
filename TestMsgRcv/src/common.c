@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <sys/msg.h>
+#include <syslog.h>
 #include "msg_common.h"
 
 // --- ヘルパー：内部メッセージ構築 ---
@@ -30,7 +31,7 @@ int send_to_main(int msqid, const InternalMsg* msg) {
         return -1;
     }
     if (msgsnd(msqid, msg, sizeof(InternalMsg) - sizeof(long), 0) == -1) {
-        perror("msgsnd");
+        syslog(LOG_ERR, "msgsnd: %s", strerror(errno));
         return -1;
     }
     return 0;

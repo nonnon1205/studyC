@@ -11,12 +11,13 @@
 #include <arpa/inet.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
+#include <syslog.h>
 #include "msg_common.h"
 
 static void send_local_quit(void) {
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0) {
-        perror("socket");
+        syslog(LOG_ERR, "socket: %s", strerror(errno));
         return;
     }
 
@@ -26,15 +27,17 @@ static void send_local_quit(void) {
     dest.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
     if (sendto(fd, "QUIT", 4, 0, (struct sockaddr *)&dest, sizeof(dest)) < 0) {
-        perror("sendto");
+        syslog(LOG_ERR, "sendto: %s", strerror(errno));
     }
     close(fd);
 }
 
 int main() {
+    openlog("TestMsgRcv", LOG_PID | LOG_NDELAY, LOG_USER);
     int msqid = msgget(MSG_KEY, 0666 | IPC_CREAT);
     if (msqid == -1) {
-        perror("msgget");
+        syslog(LOG_ERR, "msgget: %s", strerror(errno));
+        closelog();
         return EXIT_FAILURE;
     }
 
@@ -46,26 +49,29 @@ int main() {
     sigaddset(&set, SIGINT);
     sigaddset(&set, SIGTERM);
     if (pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) {
-        perror("pthread_sigmask");
+        syslog(LOG_ERR, "pthread_sigmask: %s", strerror(errno));
         msgctl(msqid, IPC_RMID, NULL);
+        closelog();
         return EXIT_FAILURE;
     }
 
     // スレッド起動
     if (pthread_create(&t1, NULL, udp_worker, &msqid) != 0) {
-        perror("pthread_create udp_worker");
+        syslog(LOG_ERR, "pthread_create udp_worker: %s", strerror(errno));
         msgctl(msqid, IPC_RMID, NULL);
+        closelog();
         return EXIT_FAILURE;
     }
     if (pthread_create(&t2, NULL, signal_worker, &msqid) != 0) {
-        perror("pthread_create signal_worker");
+        syslog(LOG_ERR, "pthread_create signal_worker: %s", strerror(errno));
         pthread_cancel(t1);
         pthread_join(t1, NULL);
         msgctl(msqid, IPC_RMID, NULL);
+        closelog();
         return EXIT_FAILURE;
     }
 
-    printf("[Main] 指揮官、msgrcvにてイベント待機を開始します。\n");
+    syslog(LOG_INFO, "[Main] 指揮官、msgrcvにてイベント待機を開始します。");
 
     InternalMsg rx_msg;
     int keep_running = 1;
@@ -74,23 +80,23 @@ int main() {
         // ここで全イベントを一本化して待機（CPU負荷 0）
         if (msgrcv(msqid, &rx_msg, sizeof(InternalMsg) - sizeof(long), 0, 0) == -1) {
             if (errno == EINTR) continue;
-            perror("msgrcv");
+            syslog(LOG_ERR, "msgrcv: %s", strerror(errno));
             break;
         }
 
         switch (rx_msg.event) {
             case EV_QUIT:
-                printf("[Main] 終了命令を受信。システムを停止します。\n");
+                syslog(LOG_INFO, "[Main] 終了命令を受信。システムを停止します。");
                 keep_running = 0;
                 if (pthread_kill(t2, SIGINT) != 0) {
-                    perror("pthread_kill");
+                    syslog(LOG_ERR, "pthread_kill: %s", strerror(errno));
                 }
                 break;
             case EV_UDP:
-                printf("[Main] UDPデータ受信: %s\n", rx_msg.data.udp_payload);
+                syslog(LOG_INFO, "[Main] UDPデータ受信: %s", rx_msg.data.udp_payload);
                 break;
             case EV_SIGNAL:
-                printf("[Main] シグナル(%d)を検知しました。\n", rx_msg.data.sig_num);
+                syslog(LOG_INFO, "[Main] シグナル(%d)を検知しました。", rx_msg.data.sig_num);
                 if (rx_msg.data.sig_num == SIGINT) {
                     keep_running = 0;
                     send_local_quit();
@@ -102,13 +108,14 @@ int main() {
     }
 
     // 終了シーケンス
-    printf("[Main] 各スレッドを回収中...\n");
+    syslog(LOG_INFO, "[Main] 各スレッドを回収中...");
     pthread_join(t1, NULL);
     pthread_join(t2, NULL);
     if (msgctl(msqid, IPC_RMID, NULL) == -1) {
-        perror("msgctl(IPC_RMID)");
+        syslog(LOG_ERR, "msgctl(IPC_RMID): %s", strerror(errno));
     }
-    printf("[Main] リソース解放完了。正常終了。\n");
+    syslog(LOG_INFO, "[Main] リソース解放完了。正常終了。");
+    closelog();
 
     return 0;
 }

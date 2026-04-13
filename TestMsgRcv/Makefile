@@ -31,5 +31,5 @@ clean:
 test: test_common
 	./test_common
 
-test_common: tests/test_common.c
+test_common: tests/test_common.c src/common.c
 	$(CC) $(CFLAGS) -o $@ $^
