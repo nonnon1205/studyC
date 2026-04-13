@@ -11,6 +11,7 @@
 #include <arpa/inet.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
+#include <time.h>
 #include "log_wrapper.h"
 #include "msg_common.h"
 
@@ -40,6 +41,10 @@ int main() {
         log_close();
         return EXIT_FAILURE;
     }
+
+    // ★ Helgrind対策: スレッド作成前にタイムゾーンを初期化し、
+    // syslog 内部での競合（誤検知）を防止する
+    tzset();    
 
     pthread_t t1, t2;
     sigset_t set;

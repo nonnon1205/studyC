@@ -1,2 +1,2 @@
-test_common: src/common.c src/msg_common.h
-src/msg_common.h:
+test_common: src/log_wrapper.c src/log_wrapper.h
+src/log_wrapper.h:
