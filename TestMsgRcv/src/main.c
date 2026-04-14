@@ -116,7 +116,7 @@ int main(int argc, char *argv[]) {
     // syslog 内部での競合（誤検知）を防止する
     tzset();    
 
-    pthread_t t1, t2;
+    pthread_t t1, t2, t3;
     sigset_t set;
 
     // シグナルブロック
@@ -141,6 +141,16 @@ int main(int argc, char *argv[]) {
         log_err("pthread_create signal_worker: %s", strerror(errno));
         pthread_cancel(t1);
         pthread_join(t1, NULL);
+        msgctl(msqid, IPC_RMID, NULL);
+        log_close();
+        return EXIT_FAILURE;
+    }
+    if (pthread_create(&t3, NULL, shm_worker, &msqid) != 0) {
+        log_err("pthread_create shm_worker: %s", strerror(errno));
+        pthread_cancel(t1);
+        pthread_join(t1, NULL);
+        pthread_cancel(t2);
+        pthread_join(t2, NULL);
         msgctl(msqid, IPC_RMID, NULL);
         log_close();
         return EXIT_FAILURE;
@@ -192,6 +202,9 @@ int main(int argc, char *argv[]) {
                     keep_running = 0;
                     send_local_quit();
                 }
+                break;
+            case EV_IPC:
+                log_info("[Main] IPCイベント受信: %s", rx_msg.data.ipc_payload);
                 break;
             default:
                 break;

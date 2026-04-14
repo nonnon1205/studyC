@@ -52,3 +52,8 @@ int send_signal_event(int msqid, int sig) {
     InternalMsg msg = build_internal_msg(EV_SIGNAL, NULL, sig);
     return send_to_main(msqid, &msg);
 }
+
+int send_ipc_event(int msqid, const char* payload) {
+    InternalMsg msg = build_internal_msg(EV_IPC, payload, 0);
+    return send_to_main(msqid, &msg);
+}

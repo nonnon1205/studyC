@@ -29,6 +29,8 @@ void* udp_worker(void* arg) {
         return NULL;
     }
 
+    // src/udp_worker.c の while ループ内を以下のように修正
+
     printf("[UDP] 待機中...\n");
     while (1) {
         len = sizeof(cliaddr);
@@ -36,14 +38,24 @@ void* udp_worker(void* arg) {
         if (n < 0) break;
         buffer[n] = '\0';
 
+        // パターンA: 外部からの終了「要求」
         if (strncmp(buffer, "QUIT", 4) == 0) {
-            printf("[UDP] 終了メッセージを受信。ループを抜けます。\n");
+            printf("[UDP] 外部から終了要求(QUIT)を受信。メインに報告します。\n");
             pthread_mutex_lock(&ctx->mtx);
             ctx->shutdown_requested = 1;
             pthread_cond_signal(&ctx->cond);
             pthread_mutex_unlock(&ctx->mtx);
+            // ★超重要: ここで break しない！次の recvfrom に戻る
+            continue; 
+        }
+
+        // パターンB: メインスレッドからの致死命令（Poison Pill）
+        if (strncmp(buffer, "POISON_PILL", 11) == 0) {
+            printf("[UDP] メインから致死命令(POISON_PILL)を受信。自害します。\n");
             break;
         }
+        // （その他の通常のUDPパケット処理があればここに書く）
     }
+
     return NULL;
 }

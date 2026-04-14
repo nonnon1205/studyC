@@ -4,6 +4,8 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>
 
+void* shm_worker(void* arg);
+
 // 1. メッセージ型の定義
 typedef enum {
     EV_QUIT,    // 終了要求
@@ -38,6 +40,8 @@ int send_udp_event(int msqid, const char* payload);
 int send_signal_event(int msqid, int sig);
 void* udp_worker(void* arg);
 void* signal_worker(void* arg);
+void* ipc_worker(void* arg);
+void* shm_worker(void* arg);
 
 #define MSG_KEY 0x54321  // 内部通信用メッセージキー
 #define UDP_PORT 8888

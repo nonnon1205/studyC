@@ -1,11 +1,17 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -g -pthread -Iinclude -I../SHM/include -MMD -MP
+CFLAGS = -Wall -Wextra -g -pthread -Iinclude -I../SHM/include -MMD -MP $(IFDEF)
 TARGET = TestMsgRcv
 SRCDIR = src
 OBJDIR = obj
-SRCS = $(SRCDIR)/main.c $(SRCDIR)/udp_worker.c $(SRCDIR)/signal_worker.c $(SRCDIR)/common.c $(SRCDIR)/log_wrapper.c
+SRCS = \
+	$(SRCDIR)/main.c \
+	$(SRCDIR)/udp_worker.c \
+	$(SRCDIR)/signal_worker.c \
+	$(SRCDIR)/msg_common.c \
+	$(SRCDIR)/log_wrapper.c \
+	$(SRCDIR)/shm_worker.c
 OBJS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SRCS))
-
+#IFDEF = -DENABLE_FAULT_INJECTION
 LIBDIRNAME  = ../lib
 LDFLAGS     = -L$(LIBDIRNAME)
 LDLIBS      = -lshm
@@ -31,5 +37,8 @@ clean:
 test: test_common
 	./test_common
 
-test_common: tests/test_common.c src/common.c src/log_wrapper.c
+test_common: \
+	tests/test_common.c \
+	src/msg_common.c \
+	src/log_wrapper.c
 	$(CC) $(CFLAGS) -o $@ $^

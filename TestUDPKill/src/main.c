@@ -16,7 +16,6 @@ int main() {
     pthread_t t_udp, t_ipc, t_sig;
     AppContext ctx;
     sigset_t set;
-
     // 前準備
     sigemptyset(&set);
     sigaddset(&set, SIGTERM);
@@ -27,10 +26,18 @@ int main() {
     pthread_mutex_init(&ctx.mtx, NULL);
     pthread_cond_init(&ctx.cond, NULL);
     ctx.shutdown_requested = 0;
+    ctx.signal_thread_ready = false;
+
+    pthread_create(&t_sig, NULL, signal_worker, (void *)&ctx);
+
+    pthread_mutex_lock(&ctx.mtx);
+    while (!ctx.signal_thread_ready) {
+        pthread_cond_wait(&ctx.cond, &ctx.mtx);
+    }
+    pthread_mutex_unlock(&ctx.mtx);
 
     pthread_create(&t_udp, NULL, udp_worker, (void *)&ctx);
     pthread_create(&t_ipc, NULL, ipc_worker, (void *)&ctx);
-    pthread_create(&t_sig, NULL, signal_worker, (void *)&set);
 
     // いずれかのルートで終了フラグが立つのを待つ
     pthread_mutex_lock(&ctx.mtx);
@@ -41,22 +48,23 @@ int main() {
 
     printf("\n[Main] --- 終了通知シーケンス開始 ---\n");
 
-    // 1. UDPスレッドを叩き起こす (自分自身に送る)
+    // 1. UDPスレッドに致死命令（Poison Pill）を送る
     struct sockaddr_in dest;
     dest.sin_family = AF_INET;
     dest.sin_port = htons(UDP_PORT);
     inet_pton(AF_INET, "127.0.0.1", &dest.sin_addr);
     int tmp_fd = socket(AF_INET, SOCK_DGRAM, 0);
-    sendto(tmp_fd, "QUIT", 4, 0, (struct sockaddr *)&dest, sizeof(dest));
+    // ★ここを "QUIT" から "POISON_PILL" に変更
+    sendto(tmp_fd, "POISON_PILL", 11, 0, (struct sockaddr *)&dest, sizeof(dest));
     close(tmp_fd);
 
-    // 2. IPCスレッドを叩き起こす
+    // 2. IPCスレッドを叩き起こす（これは元のままで完璧です）
     struct msg_buffer stop_msg = {1, "EXIT"};
     msgsnd(ctx.msqid, &stop_msg, sizeof(stop_msg.msg_text), 0);
 
-    // 3. Signalスレッドを叩き起こす
+    // 3. Signalスレッドを叩き起こす（これも元のままで完璧です）
     pthread_kill(t_sig, SIGUSR1);
-
+    
     // 各スレッドの合流を待つ
     pthread_join(t_udp, NULL);
     pthread_join(t_ipc, NULL);
