@@ -1,0 +1,10 @@
+# Build artifacts
+*.o
+*.d
+
+# Executables
+TestMsgRcv/TestMsgRcv
+PollIO/pollio
+
+# Build directories
+TestMsgRcv/obj/
