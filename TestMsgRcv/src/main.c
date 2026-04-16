@@ -271,7 +271,8 @@ int main(int argc, char *argv[]) {
                 atomic_store_explicit(&g_keep_running, false, memory_order_release);
                 if (g_shutdown_pipe[1] != -1) {
                     char dummy = 'x';
-                    write(g_shutdown_pipe[1], &dummy, 1);
+                    //write(g_shutdown_pipe[1], &dummy, 1);
+                    close(g_shutdown_pipe[1]);
                 }
                 break;
             default:
@@ -282,7 +283,9 @@ int main(int argc, char *argv[]) {
     atomic_store_explicit(&g_keep_running, false, memory_order_release);
     if (g_shutdown_pipe[1] != -1) {
         char dummy = 'x';
-        write(g_shutdown_pipe[1], &dummy, 1);
+        //write(g_shutdown_pipe[1], &dummy, 1);
+        close(g_shutdown_pipe[1]);
+        
     }
     if (router_started) {
         send_shm_quit(router_ctx.ipc_msqid);
@@ -295,8 +298,12 @@ int main(int argc, char *argv[]) {
     // 終了シーケンス
     log_info("[Main] 各スレッドを回収中...");
     pthread_join(t1, NULL);
+    log_info("t1 (UDP Worker) 終了");
     pthread_join(t2, NULL);
+    log_info("t2 (Signal Worker) 終了");
     pthread_join(t3, NULL);
+    log_info("t3 (Router Worker) 終了");
+
 
     if (g_shutdown_pipe[0] != -1) close(g_shutdown_pipe[0]);
     if (g_shutdown_pipe[1] != -1) close(g_shutdown_pipe[1]);
