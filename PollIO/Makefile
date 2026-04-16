@@ -5,13 +5,16 @@ SRCDIR = src
 TARGET = pollio
 SRCS = $(SRCDIR)/main.c $(SRCDIR)/poll_io.c
 OBJS = $(SRCS:.c=.o)
+LIBDIRNAME = ../lib
+LDFLAGS = -L$(LIBDIRNAME)
+LDLIBS = -lshm
 
 .PHONY: all clean
 
 all: $(TARGET)
 
-$(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $^
+$(TARGET): $(OBJS) $(LIBDIRNAME)/libshm.a
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
 $(SRCDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) $(INCLUDES) -c -o $@ $<

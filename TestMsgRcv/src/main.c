@@ -14,6 +14,8 @@
 #include <time.h>
 #include "log_wrapper.h"
 #include "msg_common.h"
+#include "shared_ipc.h"
+#include "shm_api.h"
 
 #ifdef ENABLE_FAULT_INJECTION
 static void print_usage(const char* prog) {
@@ -30,26 +32,19 @@ static void* race_worker(void* arg) {
 }
 #endif
 
-static void send_local_quit(void) {
-    int fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (fd < 0) {
-        log_err("socket: %s", strerror(errno));
-        return;
+static void send_shm_quit(int msqid) {
+    IpcNotifyMessage notify;
+    notify.mtype = MSG_TYPE_SHM_NOTIFY;
+    notify.shm_status_id = MSG_TYPE_SHM_QUIT;
+    if (msgsnd(msqid, &notify, sizeof(IpcNotifyMessage) - sizeof(long), 0) == -1) {
+        log_err("msgsnd (SHM_QUIT): %s", strerror(errno));
     }
-
-    struct sockaddr_in dest = {0};
-    dest.sin_family = AF_INET;
-    dest.sin_port = htons(UDP_PORT);
-    dest.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-
-    if (sendto(fd, "QUIT", 4, 0, (struct sockaddr *)&dest, sizeof(dest)) < 0) {
-        log_err("sendto: %s", strerror(errno));
-    }
-    close(fd);
 }
 
 int g_fail_race = 0;
 int volatile g_race_flag = 0;
+atomic_bool g_keep_running = ATOMIC_VAR_INIT(true);
+int g_shutdown_pipe[2] = {-1, -1};
 
 int main(int argc, char *argv[]) {
     int fail_leak = 0;
@@ -119,12 +114,32 @@ int main(int argc, char *argv[]) {
     pthread_t t1, t2, t3;
     sigset_t set;
 
+    // --- 追加: MQとSHMの初期化 ---
+    int ipc_msqid = msgget(SYSTEM_IPC_KEY, 0666 | IPC_CREAT);
+    ShmHandle shm_handle = shm_api_init();
+    if (!shm_handle) {
+        fprintf(stderr, "共有メモリの初期化に失敗しました。\n");
+        return EXIT_FAILURE;
+    }
+
+    // internal shutdown pipe for UDP thread wakeup
+    if (pipe(g_shutdown_pipe) != 0) {
+        log_err("pipe: %s", strerror(errno));
+        msgctl(msqid, IPC_RMID, NULL);
+        shm_api_close(shm_handle);
+        log_close();
+        return EXIT_FAILURE;
+    }
+
     // シグナルブロック
     sigemptyset(&set);
     sigaddset(&set, SIGINT);
     sigaddset(&set, SIGTERM);
     if (pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) {
         log_err("pthread_sigmask: %s", strerror(errno));
+        if (g_shutdown_pipe[0] != -1) close(g_shutdown_pipe[0]);
+        if (g_shutdown_pipe[1] != -1) close(g_shutdown_pipe[1]);
+        shm_api_close(shm_handle);
         msgctl(msqid, IPC_RMID, NULL);
         log_close();
         return EXIT_FAILURE;
@@ -134,6 +149,9 @@ int main(int argc, char *argv[]) {
     if (pthread_create(&t1, NULL, udp_worker, &msqid) != 0) {
         log_err("pthread_create udp_worker: %s", strerror(errno));
         msgctl(msqid, IPC_RMID, NULL);
+        shm_api_close(shm_handle);
+        if (g_shutdown_pipe[0] != -1) close(g_shutdown_pipe[0]);
+        if (g_shutdown_pipe[1] != -1) close(g_shutdown_pipe[1]);
         log_close();
         return EXIT_FAILURE;
     }
@@ -142,16 +160,22 @@ int main(int argc, char *argv[]) {
         pthread_cancel(t1);
         pthread_join(t1, NULL);
         msgctl(msqid, IPC_RMID, NULL);
+        shm_api_close(shm_handle);
+        if (g_shutdown_pipe[0] != -1) close(g_shutdown_pipe[0]);
+        if (g_shutdown_pipe[1] != -1) close(g_shutdown_pipe[1]);
         log_close();
         return EXIT_FAILURE;
     }
-    if (pthread_create(&t3, NULL, shm_worker, &msqid) != 0) {
-        log_err("pthread_create shm_worker: %s", strerror(errno));
+    if (pthread_create(&t3, NULL, router_worker, &msqid) != 0) {
+        log_err("pthread_create router_worker: %s", strerror(errno));
         pthread_cancel(t1);
         pthread_join(t1, NULL);
         pthread_cancel(t2);
         pthread_join(t2, NULL);
         msgctl(msqid, IPC_RMID, NULL);
+        shm_api_close(shm_handle);
+        if (g_shutdown_pipe[0] != -1) close(g_shutdown_pipe[0]);
+        if (g_shutdown_pipe[1] != -1) close(g_shutdown_pipe[1]);
         log_close();
         return EXIT_FAILURE;
     }
@@ -165,7 +189,10 @@ int main(int argc, char *argv[]) {
             pthread_join(t1, NULL);
             pthread_cancel(t2);
             pthread_join(t2, NULL);
+            pthread_cancel(t3);
+            pthread_join(t3, NULL);
             msgctl(msqid, IPC_RMID, NULL);
+            shm_api_close(shm_handle);
             log_close();
             return EXIT_FAILURE;
         }
@@ -175,9 +202,8 @@ int main(int argc, char *argv[]) {
     log_info("[Main] 指揮官、msgrcvにてイベント待機を開始します。");
 
     InternalMsg rx_msg;
-    int keep_running = 1;
 
-    while (keep_running) {
+    while (g_keep_running) {
         // ここで全イベントを一本化して待機（CPU負荷 0）
         if (msgrcv(msqid, &rx_msg, sizeof(InternalMsg) - sizeof(long), 0, 0) == -1) {
             if (errno == EINTR) continue;
@@ -187,20 +213,20 @@ int main(int argc, char *argv[]) {
 
         switch (rx_msg.event) {
             case EV_QUIT:
-                log_info("[Main] 終了命令を受信。システムを停止します。");
-                keep_running = 0;
-                if (pthread_kill(t2, SIGINT) != 0) {
-                    log_err("pthread_kill: %s", strerror(errno));
-                }
+                log_info("[Main] 外部 UDP QUIT を受信しました。終了命令として扱いません。");
                 break;
             case EV_UDP:
                 log_info("[Main] UDPデータ受信: %s", rx_msg.data.udp_payload);
                 break;
             case EV_SIGNAL:
                 log_info("[Main] シグナル(%d)を検知しました。", rx_msg.data.sig_num);
-                if (rx_msg.data.sig_num == SIGINT) {
-                    keep_running = 0;
-                    send_local_quit();
+                if (rx_msg.data.sig_num == SIGINT || rx_msg.data.sig_num == SIGTERM) {
+                    atomic_store_explicit(&g_keep_running, false, memory_order_release);
+                    send_shm_quit(ipc_msqid);
+                    if (g_shutdown_pipe[1] != -1) {
+                        char dummy = 'x';
+                        write(g_shutdown_pipe[1], &dummy, 1);
+                    }
                 }
                 break;
             case EV_IPC:
@@ -211,10 +237,27 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    atomic_store_explicit(&g_keep_running, false, memory_order_release);
+    if (g_shutdown_pipe[1] != -1) {
+        char dummy = 'x';
+        write(g_shutdown_pipe[1], &dummy, 1);
+    }
+    int cancel_ret = pthread_cancel(t2);
+    if (cancel_ret != 0 && cancel_ret != ESRCH) {
+        log_err("pthread_cancel(signal_worker): %s", strerror(cancel_ret));
+    }
+
     // 終了シーケンス
     log_info("[Main] 各スレッドを回収中...");
     pthread_join(t1, NULL);
     pthread_join(t2, NULL);
+    pthread_join(t3, NULL);
+
+    if (g_shutdown_pipe[0] != -1) close(g_shutdown_pipe[0]);
+    if (g_shutdown_pipe[1] != -1) close(g_shutdown_pipe[1]);
+
+    shm_api_close(shm_handle);
+
 #ifdef ENABLE_FAULT_INJECTION
     if (fail_race) {
         pthread_cancel(t_race);

@@ -14,6 +14,10 @@ void* signal_worker(void* arg) {
     int msqid = *(int*)arg;
     sigset_t set;
     int sig;
+
+    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+    pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
+
     sigemptyset(&set);
     sigaddset(&set, SIGINT);
     sigaddset(&set, SIGTERM);

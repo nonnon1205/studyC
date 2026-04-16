@@ -10,6 +10,7 @@
 #include "pollIo_common.h"
 #include <signal.h>
 #include "shared_ipc.h"
+#include "shm_api.h"
 
 extern volatile sig_atomic_t g_keep_running;
 
@@ -66,7 +67,8 @@ bool handle_stdin_read(int udp_fd) {
     return true;
 }
 
-void handle_udp_read(int udp_fd) {
+// ※ main関数などで shm_handle と ipc_msqid を初期化し、引数として渡してくる想定です
+void handle_udp_read(int udp_fd, int ipc_msqid, ShmHandle shm_handle) {
     char buffer[1024];
     struct sockaddr_in cliaddr;
     socklen_t len = sizeof(cliaddr);
@@ -74,16 +76,39 @@ void handle_udp_read(int udp_fd) {
     int n = recvfrom(udp_fd, buffer, sizeof(buffer)-1, 0, (struct sockaddr *)&cliaddr, &len);
     if (n > 0) {
         buffer[n] = '\0';
-        printf("\n  <- [UDP受信] %s:%d より: %s\n", 
+        printf("\n  <- [PollIO] %s:%d からUDP受信: %s\n", 
                inet_ntoa(cliaddr.sin_addr), ntohs(cliaddr.sin_port), buffer);
         
-        // ※将来、ここに「受信したバッファをIPC(メッセージキュー)へ流し込む」
-        // 処理を1行追加するだけで、完璧な中継プロキシが完成します。
+        // ========================================================
+        // 1. Data Plane (共有メモリへの実データ書き込み)
+        // ========================================================
+        // 状態IDは仮で「100」とします（本来はパケットの種類等で分ける）
+        int status_id = 100; 
+        
+        if (shm_api_write(shm_handle, status_id, buffer)) {
+            printf("  -> [SHM] ペイロードの書き込み成功 (StatusID: %d)\n", status_id);
+            
+            // ========================================================
+            // 2. Control Plane (メッセージキューへの軽量な通知)
+            // ========================================================
+            IpcNotifyMessage notify;
+            notify.mtype = MSG_TYPE_SHM_NOTIFY;
+            notify.shm_status_id = status_id; // 「100番を読め」とだけ伝える
+
+            // IPC_NOWAITでブロックさせずにサッと投げる
+            if (msgsnd(ipc_msqid, &notify, sizeof(IpcNotifyMessage) - sizeof(long), IPC_NOWAIT) == 0) {
+                printf("  -> [MQ] TestMsgRcvへ通知完了\n");
+            } else {
+                perror("  -> [MQ] 通知失敗");
+            }
+        } else {
+            printf("  -> [SHM] 書き込み失敗 (Mutexロック等による)\n");
+        }
     }
 }
 
 // --- 3. メインループ (Reactorコア) ---
-void run_event_loop(int udp_fd) {
+void run_event_loop(int udp_fd,int ipc_msqid, ShmHandle shm_handle) {
     struct pollfd fds[2];
 
     // 監視対象1: キーボード(標準入力)
@@ -122,7 +147,7 @@ void run_event_loop(int udp_fd) {
 
         // UDPパケットが届いた場合
         if (fds[1].revents & POLLIN) {
-            handle_udp_read(udp_fd);
+            handle_udp_read(udp_fd, ipc_msqid, shm_handle);
             printf("> ");
             fflush(stdout);
         }

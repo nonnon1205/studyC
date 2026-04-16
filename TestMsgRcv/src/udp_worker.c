@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <sys/time.h>
 #include "log_wrapper.h"
 #include "msg_common.h"
 
@@ -33,21 +34,49 @@ void* udp_worker(void* arg) {
 
     char buf[256];
     log_info("[UDP] 待機中 (Port: %d)", UDP_PORT);
-    while (1) {
-        int n = recvfrom(fd, buf, sizeof(buf) - 1, 0, NULL, NULL);
-        if (n < 0) {
-            if (errno == EINTR) continue;
-            log_err("[UDP] recvfrom: %s", strerror(errno));
-            break;
-        }
-        if (n == 0) continue;
 
-        buf[n] = '\0';
-        if (strncmp(buf, "QUIT", 4) == 0) {
-            send_quit_event(msqid);
+    int stop_fd = g_shutdown_pipe[0];
+    if (stop_fd == -1) {
+        log_err("[UDP] no shutdown pipe available");
+        close(fd);
+        return NULL;
+    }
+
+    while (atomic_load_explicit(&g_keep_running, memory_order_acquire)) {
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        FD_SET(fd, &readfds);
+        FD_SET(stop_fd, &readfds);
+        int nfds = (fd > stop_fd ? fd : stop_fd) + 1;
+
+        int ready = select(nfds, &readfds, NULL, NULL, NULL);
+        if (ready < 0) {
+            if (errno == EINTR) continue;
+            log_err("[UDP] select: %s", strerror(errno));
             break;
         }
-        send_udp_event(msqid, buf);
+        if (FD_ISSET(stop_fd, &readfds)) {
+            char dummy;
+            while (read(stop_fd, &dummy, 1) > 0) {
+            }
+            break;
+        }
+        if (FD_ISSET(fd, &readfds)) {
+            int n = recvfrom(fd, buf, sizeof(buf) - 1, 0, NULL, NULL);
+            if (n < 0) {
+                if (errno == EINTR) continue;
+                log_err("[UDP] recvfrom: %s", strerror(errno));
+                break;
+            }
+            if (n == 0) continue;
+
+            buf[n] = '\0';
+            if (strcmp(buf, UDP_QUIT_CMD) == 0) {
+                log_info("[UDP] 外部 QUIT を受信しました。終了処理はシグナルを待ちます。");
+                continue;
+            }
+            send_udp_event(msqid, buf);
+        }
     }
 
     close(fd);

@@ -11,6 +11,7 @@
 #include <sys/msg.h>
 #include <poll.h>
 #include <stdbool.h>
+#include "shm_api.h"
 
 #define UDP_PORT 8080
 #define UDP_SEND_PORT 8888
@@ -23,9 +24,9 @@ void close_udp_socket(int fd);
 
 // ハンドラ系
 bool handle_stdin_read(int udp_fd);
-void handle_udp_read(int udp_fd);
+void handle_udp_read(int udp_fd, int ipc_msqid, ShmHandle shm_handle);
 
 // コアエンジン
-void run_event_loop(int udp_fd);
+void run_event_loop(int udp_fd, int ipc_msqid, ShmHandle shm_handle);
 
 #endif

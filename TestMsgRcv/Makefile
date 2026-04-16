@@ -7,6 +7,7 @@ SRCS = \
 	$(SRCDIR)/main.c \
 	$(SRCDIR)/udp_worker.c \
 	$(SRCDIR)/signal_worker.c \
+	$(SRCDIR)/router_worker.c \
 	$(SRCDIR)/msg_common.c \
 	$(SRCDIR)/log_wrapper.c \
 	$(SRCDIR)/shm_worker.c

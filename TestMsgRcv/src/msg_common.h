@@ -1,8 +1,13 @@
 #ifndef COMMON_H
 #define COMMON_H
 #define _POSIX_C_SOURCE 200809L
+#include <stdatomic.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
+#include <signal.h>
+
+extern atomic_bool g_keep_running;
+extern int g_shutdown_pipe[2];
 
 void* shm_worker(void* arg);
 
@@ -38,13 +43,15 @@ int send_to_main(int msqid, const InternalMsg* msg);
 int send_quit_event(int msqid);
 int send_udp_event(int msqid, const char* payload);
 int send_signal_event(int msqid, int sig);
+int send_ipc_event(int msqid, const char* payload);
 void* udp_worker(void* arg);
 void* signal_worker(void* arg);
 void* ipc_worker(void* arg);
 void* shm_worker(void* arg);
-
+void* router_worker(void* arg);
 #define MSG_KEY 0x54321  // 内部通信用メッセージキー
 #define UDP_PORT 8888
+#define UDP_QUIT_CMD "QUIT"
 #define MSG_SIZE sizeof(InternalMsg) - sizeof(long)
 #define MSG_QUEUE_SIZE 10
 #define MSG_TYPE 1

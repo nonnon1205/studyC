@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <signal.h>
 #include "pollIo_common.h"
+#include "shared_ipc.h"
+#include "shm_api.h"
 
 // シングルスレッド特権：シグナルで書き換えるだけのシンプルな終了フラグ
 volatile sig_atomic_t g_keep_running = 1;
@@ -21,6 +23,14 @@ int main() {
     sigaction(SIGINT, &sa, NULL);
     sigaction(SIGTERM, &sa, NULL);
 
+    // --- 追加: MQとSHMの初期化 ---
+    int ipc_msqid = msgget(SYSTEM_IPC_KEY, 0666 | IPC_CREAT);
+    ShmHandle shm_handle = shm_api_init();
+    if (!shm_handle) {
+        fprintf(stderr, "共有メモリの初期化に失敗しました。\n");
+        return EXIT_FAILURE;
+    }
+
     printf("==========================================\n");
     printf(" PollIO 統合コントローラー起動\n");
     printf("==========================================\n");
@@ -31,8 +41,11 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    // 3. 全てを poll() に委ねる
-    run_event_loop(udp_fd);
+    // run_event_loop の引数を増やして呼び出す
+    run_event_loop(udp_fd, ipc_msqid, shm_handle);
+
+    // 終了処理に追加
+    shm_api_close(shm_handle);
 
     // 4. クリーンアップ
     close_udp_socket(udp_fd);
