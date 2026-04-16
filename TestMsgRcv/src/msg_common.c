@@ -47,7 +47,10 @@ int send_udp_event(int msqid, const char* payload) {
     InternalMsg msg = build_internal_msg(EV_UDP, payload, 0);
     return send_to_main(msqid, &msg);
 }
-
+int send_fatal_event(int msqid, const char* payload) {
+    InternalMsg msg = build_internal_msg(EV_FATAL, payload, 0);
+    return send_to_main(msqid, &msg);
+}
 int send_signal_event(int msqid, int sig) {
     InternalMsg msg = build_internal_msg(EV_SIGNAL, NULL, sig);
     return send_to_main(msqid, &msg);

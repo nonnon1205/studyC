@@ -28,6 +28,7 @@ typedef struct {
     int msqid;
     int udp_fd;
     bool signal_thread_ready; // 追加: Signalスレッドの準備完了フラグ   
+    int shutdown_pipe[2]; 
 } AppContext;
 
 typedef struct {
@@ -35,10 +36,9 @@ typedef struct {
     sigset_t *sig_set;  // このスレッド専用の設定
 } SignalWorkerArgs;
 
-
-// プロトタイプ宣言（各スレッドの「顔」を並べる）
 void* udp_worker(void* arg);
 void* ipc_worker(void* arg);
 void* signal_worker(void* arg);
+void* tcp_worker(void* arg);
 
 #endif

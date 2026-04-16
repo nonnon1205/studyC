@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <signal.h>
+#include <semaphore.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -14,6 +15,7 @@
 #include <time.h>
 #include "log_wrapper.h"
 #include "msg_common.h"
+#include "router_worker.h"
 #include "shared_ipc.h"
 #include "shm_api.h"
 
@@ -44,10 +46,12 @@ static void send_shm_quit(int msqid) {
 int g_fail_race = 0;
 int volatile g_race_flag = 0;
 atomic_bool g_keep_running = ATOMIC_VAR_INIT(true);
+sem_t g_signal_worker_ready;
 int g_shutdown_pipe[2] = {-1, -1};
 
 int main(int argc, char *argv[]) {
     int fail_leak = 0;
+    RouterContext router_ctx;
 #ifdef ENABLE_FAULT_INJECTION
     int fail_use_after_free = 0;
     int fail_race = 0;
@@ -100,7 +104,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (fail_race) {
         g_fail_race = 1;
     }
 #else
@@ -113,11 +116,13 @@ int main(int argc, char *argv[]) {
 
     pthread_t t1, t2, t3;
     sigset_t set;
+    int router_started = 0;
 
     // --- 追加: MQとSHMの初期化 ---
-    int ipc_msqid = msgget(SYSTEM_IPC_KEY, 0666 | IPC_CREAT);
-    ShmHandle shm_handle = shm_api_init();
-    if (!shm_handle) {
+    router_ctx.main_msqid = msqid;
+    router_ctx.ipc_msqid = msgget(SYSTEM_IPC_KEY, 0666 | IPC_CREAT);
+    router_ctx.shm_handle = shm_api_init();
+    if (!router_ctx.shm_handle) {
         fprintf(stderr, "共有メモリの初期化に失敗しました。\n");
         return EXIT_FAILURE;
     }
@@ -126,7 +131,17 @@ int main(int argc, char *argv[]) {
     if (pipe(g_shutdown_pipe) != 0) {
         log_err("pipe: %s", strerror(errno));
         msgctl(msqid, IPC_RMID, NULL);
-        shm_api_close(shm_handle);
+        shm_api_close(router_ctx.shm_handle);
+        log_close();
+        return EXIT_FAILURE;
+    }
+
+    if (sem_init(&g_signal_worker_ready, 0, 0) != 0) {
+        log_err("sem_init: %s", strerror(errno));
+        if (g_shutdown_pipe[0] != -1) close(g_shutdown_pipe[0]);
+        if (g_shutdown_pipe[1] != -1) close(g_shutdown_pipe[1]);
+        shm_api_close(router_ctx.shm_handle);
+        msgctl(msqid, IPC_RMID, NULL);
         log_close();
         return EXIT_FAILURE;
     }
@@ -139,46 +154,65 @@ int main(int argc, char *argv[]) {
         log_err("pthread_sigmask: %s", strerror(errno));
         if (g_shutdown_pipe[0] != -1) close(g_shutdown_pipe[0]);
         if (g_shutdown_pipe[1] != -1) close(g_shutdown_pipe[1]);
-        shm_api_close(shm_handle);
+        shm_api_close(router_ctx.shm_handle);
         msgctl(msqid, IPC_RMID, NULL);
+        log_close();
+        sem_destroy(&g_signal_worker_ready);
+        return EXIT_FAILURE;
+    }
+
+    // スレッド起動: signal_worker を先に準備する
+    if (pthread_create(&t2, NULL, signal_worker, &msqid) != 0) {
+        log_err("pthread_create signal_worker: %s", strerror(errno));
+        msgctl(msqid, IPC_RMID, NULL);
+        shm_api_close(router_ctx.shm_handle);
+        if (g_shutdown_pipe[0] != -1) close(g_shutdown_pipe[0]);
+        if (g_shutdown_pipe[1] != -1) close(g_shutdown_pipe[1]);
+        log_close();
+        sem_destroy(&g_signal_worker_ready);
+        return EXIT_FAILURE;
+    }
+
+    if (sem_wait(&g_signal_worker_ready) != 0) {
+        log_err("sem_wait: %s", strerror(errno));
+        pthread_cancel(t2);
+        pthread_join(t2, NULL);
+        msgctl(msqid, IPC_RMID, NULL);
+        shm_api_close(router_ctx.shm_handle);
+        if (g_shutdown_pipe[0] != -1) close(g_shutdown_pipe[0]);
+        if (g_shutdown_pipe[1] != -1) close(g_shutdown_pipe[1]);
+        sem_destroy(&g_signal_worker_ready);
         log_close();
         return EXIT_FAILURE;
     }
 
-    // スレッド起動
+    sem_destroy(&g_signal_worker_ready);
+
     if (pthread_create(&t1, NULL, udp_worker, &msqid) != 0) {
         log_err("pthread_create udp_worker: %s", strerror(errno));
+        pthread_cancel(t2);
+        pthread_join(t2, NULL);
         msgctl(msqid, IPC_RMID, NULL);
-        shm_api_close(shm_handle);
+        shm_api_close(router_ctx.shm_handle);
         if (g_shutdown_pipe[0] != -1) close(g_shutdown_pipe[0]);
         if (g_shutdown_pipe[1] != -1) close(g_shutdown_pipe[1]);
         log_close();
         return EXIT_FAILURE;
     }
-    if (pthread_create(&t2, NULL, signal_worker, &msqid) != 0) {
-        log_err("pthread_create signal_worker: %s", strerror(errno));
-        pthread_cancel(t1);
-        pthread_join(t1, NULL);
-        msgctl(msqid, IPC_RMID, NULL);
-        shm_api_close(shm_handle);
-        if (g_shutdown_pipe[0] != -1) close(g_shutdown_pipe[0]);
-        if (g_shutdown_pipe[1] != -1) close(g_shutdown_pipe[1]);
-        log_close();
-        return EXIT_FAILURE;
-    }
-    if (pthread_create(&t3, NULL, router_worker, &msqid) != 0) {
+    if (pthread_create(&t3, NULL, router_worker, &router_ctx) != 0) {
         log_err("pthread_create router_worker: %s", strerror(errno));
         pthread_cancel(t1);
         pthread_join(t1, NULL);
         pthread_cancel(t2);
         pthread_join(t2, NULL);
         msgctl(msqid, IPC_RMID, NULL);
-        shm_api_close(shm_handle);
+        shm_api_close(router_ctx.shm_handle);
         if (g_shutdown_pipe[0] != -1) close(g_shutdown_pipe[0]);
         if (g_shutdown_pipe[1] != -1) close(g_shutdown_pipe[1]);
         log_close();
         return EXIT_FAILURE;
     }
+    router_started = 1;
 
 #ifdef ENABLE_FAULT_INJECTION
     pthread_t t_race;
@@ -192,7 +226,7 @@ int main(int argc, char *argv[]) {
             pthread_cancel(t3);
             pthread_join(t3, NULL);
             msgctl(msqid, IPC_RMID, NULL);
-            shm_api_close(shm_handle);
+            shm_api_close(router_ctx.shm_handle);
             log_close();
             return EXIT_FAILURE;
         }
@@ -222,7 +256,7 @@ int main(int argc, char *argv[]) {
                 log_info("[Main] シグナル(%d)を検知しました。", rx_msg.data.sig_num);
                 if (rx_msg.data.sig_num == SIGINT || rx_msg.data.sig_num == SIGTERM) {
                     atomic_store_explicit(&g_keep_running, false, memory_order_release);
-                    send_shm_quit(ipc_msqid);
+                    send_shm_quit(router_ctx.ipc_msqid);
                     if (g_shutdown_pipe[1] != -1) {
                         char dummy = 'x';
                         write(g_shutdown_pipe[1], &dummy, 1);
@@ -231,6 +265,14 @@ int main(int argc, char *argv[]) {
                 break;
             case EV_IPC:
                 log_info("[Main] IPCイベント受信: %s", rx_msg.data.ipc_payload);
+                break;
+            case EV_FATAL:
+                log_err("[Main] 内部致命エラー通知: %s", rx_msg.data.ipc_payload);
+                atomic_store_explicit(&g_keep_running, false, memory_order_release);
+                if (g_shutdown_pipe[1] != -1) {
+                    char dummy = 'x';
+                    write(g_shutdown_pipe[1], &dummy, 1);
+                }
                 break;
             default:
                 break;
@@ -241,6 +283,9 @@ int main(int argc, char *argv[]) {
     if (g_shutdown_pipe[1] != -1) {
         char dummy = 'x';
         write(g_shutdown_pipe[1], &dummy, 1);
+    }
+    if (router_started) {
+        send_shm_quit(router_ctx.ipc_msqid);
     }
     int cancel_ret = pthread_cancel(t2);
     if (cancel_ret != 0 && cancel_ret != ESRCH) {
@@ -255,8 +300,9 @@ int main(int argc, char *argv[]) {
 
     if (g_shutdown_pipe[0] != -1) close(g_shutdown_pipe[0]);
     if (g_shutdown_pipe[1] != -1) close(g_shutdown_pipe[1]);
+    sem_destroy(&g_signal_worker_ready);
 
-    shm_api_close(shm_handle);
+    shm_api_close(router_ctx.shm_handle);
 
 #ifdef ENABLE_FAULT_INJECTION
     if (fail_race) {

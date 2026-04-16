@@ -3,9 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <stdatomic.h>
 #include <pthread.h>
 #include <signal.h>
 #include <unistd.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
 #include "log_wrapper.h"
 #include "msg_common.h"
 
@@ -22,7 +25,14 @@ void* signal_worker(void* arg) {
     sigaddset(&set, SIGINT);
     sigaddset(&set, SIGTERM);
 
-    while (1) {
+    if (pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) {
+        log_err("[Signal] pthread_sigmask: %s", strerror(errno));
+        return NULL;
+    }
+
+    sem_post(&g_signal_worker_ready);
+
+    while (atomic_load_explicit(&g_keep_running, memory_order_acquire)) {
         int ret = sigwait(&set, &sig);
         if (ret != 0) {
             log_err("[Signal] sigwait: %s", strerror(ret));
@@ -33,8 +43,11 @@ void* signal_worker(void* arg) {
             g_race_flag++;
         }
 #endif
-        send_signal_event(msqid, sig);
+        if (send_signal_event(msqid, sig) != 0) {
+            log_err("[Signal] send_signal_event failed");
+        }
         if (sig == SIGINT || sig == SIGTERM) break;
+        pthread_testcancel();
     }
     return NULL;
 }

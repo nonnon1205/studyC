@@ -2,20 +2,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include "shared_ipc.h"
-#include "shm_api.h"
-
+#include "log_wrapper.h"
+#include "router_worker.h"
+#include "msg_common.h"
 #define DEST_TCP_PORT 7777 // 最終目的地(TestUDPKill)のポート
 
 // このスレッドに渡す引数用の構造体（mainでセットして渡す想定）
-typedef struct {
-    int ipc_msqid;
-    ShmHandle shm_handle;
-} RouterContext;
+
 
 void* router_worker(void* arg) {
     RouterContext* ctx = (RouterContext*)arg;
@@ -25,6 +23,7 @@ void* router_worker(void* arg) {
 
     // 1. TCPクライアントソケットの準備
     int tcp_sock = socket(AF_INET, SOCK_STREAM, 0);
+    int tcp_connected = 0;
     struct sockaddr_in dest_addr = {0};
     dest_addr.sin_family = AF_INET;
     dest_addr.sin_port = htons(DEST_TCP_PORT);
@@ -32,12 +31,19 @@ void* router_worker(void* arg) {
 
     // ※簡単のため、起動時に1回だけ接続を試みます
     // 本格的にやるなら、ここで接続失敗してもリトライするループを入れます
-    if (connect(tcp_sock, (struct sockaddr*)&dest_addr, sizeof(dest_addr)) < 0) {
-        perror("[Router] TCPサーバー(TestUDPKill)への接続に失敗しました。転送をスキップします");
-        // 接続できなくてもMQの空読み処理へ進む
-    } else {
-        printf("[Router] TestUDPKill (Port: %d) とTCP接続確立！\n", DEST_TCP_PORT);
+    if (tcp_sock < 0) {
+        log_err("[Router] socket: %s", strerror(errno));
+        send_fatal_event(ctx->main_msqid, "router_worker: socket open failure");
+        return NULL;
     }
+    if (connect(tcp_sock, (struct sockaddr*)&dest_addr, sizeof(dest_addr)) < 0) {
+        perror("[Router] TCPサーバー(TestUDPKill)への接続に失敗しました。プロセスを終了します");
+        close(tcp_sock);
+        send_fatal_event(ctx->main_msqid, "router_worker: TCP connect failure");
+        return NULL;
+    }
+    tcp_connected = 1;
+    printf("[Router] TestUDPKill (Port: %d) とTCP接続確立！\n", DEST_TCP_PORT);
 
     // 2. Control Plane (MQ) の監視ループ
     while (1) {
@@ -56,7 +62,7 @@ void* router_worker(void* arg) {
                 printf("  -> [Router] SHM(status=%d)からデータ読出成功: %s\n", status_read, payload);
                 
                 // 4. TCPに乗せ換えて TestUDPKill へ発射！
-                if (tcp_sock >= 0) {
+                if (tcp_connected && tcp_sock >= 0) {
                     // TCP通信なので、パケットの区切り(改行など)を付けて送るのが親切です
                     char tcp_buf[1100];
                     snprintf(tcp_buf, sizeof(tcp_buf), "[TCP-RELAY] %s\n", payload);
