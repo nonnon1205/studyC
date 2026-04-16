@@ -4,11 +4,22 @@ SRCDIR = src
 OBJDIR = obj
 SRCS = $(SRCDIR)/shm_api.c
 OBJS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SRCS))
-TARGET = /home/$(USER)/sutdyC/lib/libshm.a
+PREFIX = $(abspath ..)
+INCDIR = $(PREFIX)/lib/include
+TARGET = $(PREFIX)/lib/libshm.a
 
-.PHONY: all clean
+.PHONY: all install install-headers clean
 
 all: $(TARGET)
+
+install: all install-headers
+
+install-headers: | $(INCDIR)
+	install -m 644 include/shared_ipc.h $(INCDIR)/
+	install -m 644 include/shm_api.h $(INCDIR)/
+
+$(INCDIR):
+	mkdir -p $(INCDIR)
 
 $(TARGET): $(OBJS)
 	ar rcs $@ $^

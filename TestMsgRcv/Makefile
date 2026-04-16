@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -g -pthread -Iinclude -I../SHM/include -MMD -MP $(IFDEF)
+CFLAGS = -Wall -Wextra -g -pthread -Iinclude -I../lib/include -MMD -MP $(IFDEF)
 TARGET = TestMsgRcv
 SRCDIR = src
 OBJDIR = obj
