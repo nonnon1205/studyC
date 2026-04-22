@@ -13,7 +13,7 @@
 #include <stdbool.h>
 #include "shm_api.h"
 
-#define UDP_PORT 8080
+#define UDP_PORT 9999
 #define UDP_SEND_PORT 8888
 
 // --- 1. 初期化系（セットアップ） ---

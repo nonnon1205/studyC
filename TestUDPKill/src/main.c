@@ -43,7 +43,9 @@ int main() {
     }
     pthread_mutex_unlock(&ctx.mtx);
 
-    pthread_create(&t_udp, NULL, udp_worker, (void *)&ctx);
+    // /* UDP worker disabled
+    // pthread_create(&t_udp, NULL, udp_worker, (void *)&ctx);
+    // */
     pthread_create(&t_ipc, NULL, ipc_worker, (void *)&ctx);
     pthread_create(&t_tcp, NULL, tcp_worker, (void *)&ctx);
 
@@ -56,14 +58,16 @@ int main() {
 
     printf("\n[Main] --- 終了通知シーケンス開始 ---\n");
 
+    // /* UDP worker disabled - Poison Pill
     // 1. UDPスレッドに致死命令（Poison Pill）を送る
-    struct sockaddr_in dest;
-    dest.sin_family = AF_INET;
-    dest.sin_port = htons(UDP_PORT); // 既存のUDPポート定義
-    inet_pton(AF_INET, "127.0.0.1", &dest.sin_addr);
-    int tmp_fd = socket(AF_INET, SOCK_DGRAM, 0);
-    sendto(tmp_fd, "POISON_PILL", 11, 0, (struct sockaddr *)&dest, sizeof(dest));
-    close(tmp_fd);
+    // struct sockaddr_in dest;
+    // dest.sin_family = AF_INET;
+    // dest.sin_port = htons(UDP_PORT); // 既存のUDPポート定義
+    // inet_pton(AF_INET, "127.0.0.1", &dest.sin_addr);
+    // int tmp_fd = socket(AF_INET, SOCK_DGRAM, 0);
+    // sendto(tmp_fd, "POISON_PILL", 11, 0, (struct sockaddr *)&dest, sizeof(dest));
+    // close(tmp_fd);
+    // */
 
     // 2. IPCスレッドを叩き起こす
     struct msg_buffer stop_msg = {1, "EXIT"};
@@ -79,7 +83,9 @@ int main() {
     }
     
     // 各スレッドの合流を待つ
-    pthread_join(t_udp, NULL);
+    // /* UDP worker disabled
+    // pthread_join(t_udp, NULL);
+    // */
     pthread_join(t_ipc, NULL);
     pthread_join(t_sig, NULL);
     pthread_join(t_tcp, NULL);
