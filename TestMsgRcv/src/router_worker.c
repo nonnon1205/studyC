@@ -11,6 +11,9 @@
 #include "router_worker.h"
 #include "msg_common.h"
 #define DEST_TCP_PORT 7777 // 最終目的地(TestUDPKill)のポート
+#define CONNECT_MAX_RETRIES 5
+#define CONNECT_RETRY_DELAY_S 3
+
 
 // このスレッドに渡す引数用の構造体（mainでセットして渡す想定）
 
@@ -29,17 +32,26 @@ void* router_worker(void* arg) {
     dest_addr.sin_port = htons(DEST_TCP_PORT);
     inet_pton(AF_INET, "127.0.0.1", &dest_addr.sin_addr);
 
-    // ※簡単のため、起動時に1回だけ接続を試みます
-    // 本格的にやるなら、ここで接続失敗してもリトライするループを入れます
     if (tcp_sock < 0) {
         log_err("[Router] socket: %s", strerror(errno));
         send_fatal_event(ctx->main_msqid, "router_worker: socket open failure");
         return NULL;
     }
-    if (connect(tcp_sock, (struct sockaddr*)&dest_addr, sizeof(dest_addr)) < 0) {
-        perror("[Router] TCPサーバー(TestUDPKill)への接続に失敗しました。プロセスを終了します");
+
+    // TCPサーバーへの接続をリトライする
+    for (int i = 0; i < CONNECT_MAX_RETRIES; i++) {
+        if (connect(tcp_sock, (struct sockaddr*)&dest_addr, sizeof(dest_addr)) == 0) {
+            tcp_connected = 1; // 接続成功
+            break;
+        }
+        log_warn("[Router] TCP接続試行 #%d 失敗: %s. %d秒後にリトライします...", i + 1, strerror(errno), CONNECT_RETRY_DELAY_S);
+        sleep(CONNECT_RETRY_DELAY_S);
+    }
+
+    if (!tcp_connected) {
+        log_err("[Router] TCPサーバー(TestUDPKill)への接続に複数回失敗しました。プロセスを終了します。");
         close(tcp_sock);
-        send_fatal_event(ctx->main_msqid, "router_worker: TCP connect failure");
+        send_fatal_event(ctx->main_msqid, "router_worker: TCP connect failure after retries");
         return NULL;
     }
     tcp_connected = 1;
