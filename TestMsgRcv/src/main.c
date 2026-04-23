@@ -47,6 +47,7 @@ int g_fail_race = 0;
 int volatile g_race_flag = 0;
 atomic_bool g_keep_running = ATOMIC_VAR_INIT(true);
 sem_t g_signal_worker_ready;
+int g_sem_initialized = 0;
 int g_shutdown_pipe[2] = {-1, -1};
 
 int main(int argc, char *argv[]) {
@@ -107,148 +108,79 @@ int main(int argc, char *argv[]) {
     tzset();    
 
     pthread_t t1, t2, t3;
+    int t2_created = 0, t3_created = 0;
     sigset_t set;
     int router_started = 0;
+    int ret = EXIT_FAILURE; // Default to failure
 
     log_init("TestMsgRcv");
 
     int mainmsqid = msgget(IPC_PRIVATE, 0666 | IPC_CREAT);
     if (mainmsqid == -1) {
         log_err("msgget: %s", strerror(errno));
-        log_close();
-        return EXIT_FAILURE;
+        goto cleanup_log;
     }
-    // --- 追加: MQとSHMの初期化 ---
+
     int msqid = msgget(MSG_KEY, 0666 | IPC_CREAT);
     if (msqid == -1) {
         log_err("msgget: %s", strerror(errno));
-        log_close();
-        msgctl(mainmsqid, IPC_RMID, NULL);
-        return EXIT_FAILURE;
+        goto cleanup_main_msq;
     }
-    // --- 追加: MQとSHMの初期化 ---
+
     router_ctx.main_msqid = mainmsqid;
     router_ctx.ipc_msqid = msgget(SYSTEM_IPC_KEY, 0666 | IPC_CREAT);
     router_ctx.shm_handle = shm_api_init();
     if (!router_ctx.shm_handle) {
         fprintf(stderr, "共有メモリの初期化に失敗しました。\n");
-        return EXIT_FAILURE;
+        goto cleanup_msq;
     }
 
-    // internal shutdown pipe for UDP thread wakeup
     if (pipe(g_shutdown_pipe) != 0) {
         log_err("pipe: %s", strerror(errno));
-        msgctl(mainmsqid, IPC_RMID, NULL);
-        msgctl(msqid, IPC_RMID, NULL);
-        shm_api_close(router_ctx.shm_handle);
-        log_close();
-        return EXIT_FAILURE;
+        goto cleanup_shm;
     }
 
     if (sem_init(&g_signal_worker_ready, 0, 0) != 0) {
         log_err("sem_init: %s", strerror(errno));
-        if (g_shutdown_pipe[0] != -1) close(g_shutdown_pipe[0]);
-        if (g_shutdown_pipe[1] != -1) close(g_shutdown_pipe[1]);
-        shm_api_close(router_ctx.shm_handle);
-        msgctl(mainmsqid, IPC_RMID, NULL);
-        msgctl(msqid, IPC_RMID, NULL);
-        log_close();
-        return EXIT_FAILURE;
+        goto cleanup_pipe;
     }
+    g_sem_initialized = 1;
 
-    // シグナルブロック
     sigemptyset(&set);
     sigaddset(&set, SIGINT);
     sigaddset(&set, SIGTERM);
     if (pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) {
         log_err("pthread_sigmask: %s", strerror(errno));
-        if (g_shutdown_pipe[0] != -1) close(g_shutdown_pipe[0]);
-        if (g_shutdown_pipe[1] != -1) close(g_shutdown_pipe[1]);
-        shm_api_close(router_ctx.shm_handle);
-        msgctl(mainmsqid, IPC_RMID, NULL);
-        msgctl(msqid, IPC_RMID, NULL);
-        log_close();
-        sem_destroy(&g_signal_worker_ready);
-        return EXIT_FAILURE;
+        goto cleanup_sem;
     }
 
-    // スレッド起動: signal_worker を先に準備する
     if (pthread_create(&t2, NULL, signal_worker, &mainmsqid) != 0) {
         log_err("pthread_create signal_worker: %s", strerror(errno));
-        msgctl(mainmsqid, IPC_RMID, NULL);
-        msgctl(msqid, IPC_RMID, NULL);
-        shm_api_close(router_ctx.shm_handle);
-        if (g_shutdown_pipe[0] != -1) close(g_shutdown_pipe[0]);
-        if (g_shutdown_pipe[1] != -1) close(g_shutdown_pipe[1]);
-        log_close();
-        sem_destroy(&g_signal_worker_ready);
-        return EXIT_FAILURE;
+        goto cleanup_sem;
     }
+    t2_created = 1;
 
     if (sem_wait(&g_signal_worker_ready) != 0) {
         log_err("sem_wait: %s", strerror(errno));
-        pthread_cancel(t2);
-        pthread_join(t2, NULL);
-        msgctl(mainmsqid, IPC_RMID, NULL);
-        msgctl(msqid, IPC_RMID, NULL);
-        shm_api_close(router_ctx.shm_handle);
-        if (g_shutdown_pipe[0] != -1) close(g_shutdown_pipe[0]);
-        if (g_shutdown_pipe[1] != -1) close(g_shutdown_pipe[1]);
-        sem_destroy(&g_signal_worker_ready);
-        log_close();
-        return EXIT_FAILURE;
+        goto cleanup_t2;
     }
 
-    sem_destroy(&g_signal_worker_ready);
-
-    // /* UDP worker disabled
-    // if (pthread_create(&t1, NULL, udp_worker, &msqid) != 0) {
-    //     log_err("pthread_create udp_worker: %s", strerror(errno));
-    //     pthread_cancel(t2);
-    //     pthread_join(t2, NULL);
-    //     msgctl(msqid, IPC_RMID, NULL);
-    //     shm_api_close(router_ctx.shm_handle);
-    //     if (g_shutdown_pipe[0] != -1) close(g_shutdown_pipe[0]);
-    //     if (g_shutdown_pipe[1] != -1) close(g_shutdown_pipe[1]);
-    //     log_close();
-    //     return EXIT_FAILURE;
-    // }
-    // */
     if (pthread_create(&t3, NULL, router_worker, &router_ctx) != 0) {
         log_err("pthread_create router_worker: %s", strerror(errno));
-        // /* UDP worker disabled
-        // pthread_cancel(t1);
-        // pthread_join(t1, NULL);
-        // */
-        pthread_cancel(t2);
-        pthread_join(t2, NULL);
-        msgctl(msqid, IPC_RMID, NULL);
-        shm_api_close(router_ctx.shm_handle);
-        if (g_shutdown_pipe[0] != -1) close(g_shutdown_pipe[0]);
-        if (g_shutdown_pipe[1] != -1) close(g_shutdown_pipe[1]);
-        log_close();
-        return EXIT_FAILURE;
+        goto cleanup_t2;
     }
+    t3_created = 1;
     router_started = 1;
 
 #ifdef ENABLE_FAULT_INJECTION
     pthread_t t_race;
+    int t_race_created = 0;
     if (fail_race) {
         if (pthread_create(&t_race, NULL, race_worker, NULL) != 0) {
             log_err("pthread_create race_worker: %s", strerror(errno));
-            // /* UDP worker disabled
-            // pthread_cancel(t1);
-            // pthread_join(t1, NULL);
-            // */
-            pthread_cancel(t2);
-            pthread_join(t2, NULL);
-            pthread_cancel(t3);
-            pthread_join(t3, NULL);
-            msgctl(msqid, IPC_RMID, NULL);
-            shm_api_close(router_ctx.shm_handle);
-            log_close();
-            return EXIT_FAILURE;
+            goto cleanup_t3;
         }
+        t_race_created = 1;
     }
 #endif
 
@@ -309,46 +241,56 @@ int main(int argc, char *argv[]) {
     if (router_started) {
         send_shm_quit(router_ctx.ipc_msqid);
     }
-    int cancel_ret = pthread_cancel(t2);
-    if (cancel_ret != 0 && cancel_ret != ESRCH) {
-        log_err("pthread_cancel(signal_worker): %s", strerror(cancel_ret));
-    }
 
-    // 終了シーケンス
-    log_info("[Main] 各スレッドを回収中...");
-    // /* UDP worker disabled
-    // pthread_join(t1, NULL);
-    // log_info("t1 (UDP Worker) 終了");
-    // */
-    pthread_join(t2, NULL);
-    log_info("t2 (Signal Worker) 終了");
-    pthread_join(t3, NULL);
-    log_info("t3 (Router Worker) 終了");
-
-
-    if (g_shutdown_pipe[0] != -1) close(g_shutdown_pipe[0]);
-    if (g_shutdown_pipe[1] != -1) close(g_shutdown_pipe[1]);
-    sem_destroy(&g_signal_worker_ready);
-
-    shm_api_close(router_ctx.shm_handle);
+    ret = EXIT_SUCCESS; // Mark as success before cleanup
 
 #ifdef ENABLE_FAULT_INJECTION
-    if (fail_race) {
+cleanup_t_race:
+    if (fail_race && t_race_created) {
         pthread_cancel(t_race);
         pthread_join(t_race, NULL);
     }
 #endif
-    if (msgctl(msqid, IPC_RMID, NULL) == -1) {
-        log_err("msgctl(IPC_RMID): %s", strerror(errno));
+
+cleanup_t3:
+    if (t3_created) {
+        pthread_join(t3, NULL);
+        log_info("t3 (Router Worker) 終了");
     }
-    if (msgctl(mainmsqid, IPC_RMID, NULL) == -1) {
-        log_err("msgctl(IPC_RMID): %s", strerror(errno));
+
+cleanup_t2:
+    if (t2_created) {
+        int cancel_ret = pthread_cancel(t2);
+        if (cancel_ret != 0 && cancel_ret != ESRCH) {
+            log_err("pthread_cancel(signal_worker): %s", strerror(cancel_ret));
+        }
+        pthread_join(t2, NULL);
+        log_info("t2 (Signal Worker) 終了");
     }
+
+cleanup_sem:
+    if (g_sem_initialized) {
+        sem_destroy(&g_signal_worker_ready);
+    }
+
+cleanup_pipe:
+    if (g_shutdown_pipe[0] != -1) close(g_shutdown_pipe[0]);
+    if (g_shutdown_pipe[1] != -1) close(g_shutdown_pipe[1]);
+
+cleanup_shm:
+    shm_api_close(router_ctx.shm_handle);
+
+cleanup_msq:
+    if (msgctl(msqid, IPC_RMID, NULL) == -1) log_err("msgctl(IPC_RMID): %s", strerror(errno));
+cleanup_main_msq:
+    if (msgctl(mainmsqid, IPC_RMID, NULL) == -1) log_err("msgctl(IPC_RMID): %s", strerror(errno));
+cleanup_log:
+    log_info("[Main] 各スレッドを回収中...");
     if (!fail_leak && leak_buf != NULL) {
         free(leak_buf);
     }
     log_info("[Main] リソース解放完了。正常終了。");
     log_close();
 
-    return 0;
+    return ret;
 }
