@@ -1,7 +1,7 @@
 # Build artifacts
 *.o
 *.d
-
+*.a
 # Executables
 TestMsgRcv/TestMsgRcv
 PollIO/pollio
