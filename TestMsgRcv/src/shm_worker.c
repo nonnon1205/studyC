@@ -4,7 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
-#include "log_wrapper.h"
+#include "unified_logger.h"
 #include "msg_common.h"
 #include "time.h"
 #include "shm_api.h" // 隣のプロジェクトの公開API

@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
-#include "log_wrapper.h"
+#include "unified_logger.h"
 #include "msg_common.h"
 
 // --- 2. シグナルスレッド (正規化してキューへ) ---

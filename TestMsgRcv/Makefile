@@ -12,7 +12,6 @@ SRCS = \
 	$(SRCDIR)/signal_worker.c \
 	$(SRCDIR)/router_worker.c \
 	$(SRCDIR)/msg_common.c \
-	$(SRCDIR)/log_wrapper.c \
 	$(SRCDIR)/shm_worker.c
 OBJS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SRCS))
 #IFDEF = -DENABLE_FAULT_INJECTION
@@ -43,6 +42,5 @@ test: test_common
 
 test_common: \
 	tests/test_common.c \
-	src/msg_common.c \
-	src/log_wrapper.c
-	$(CC) $(CFLAGS) -o $@ $^
+	src/msg_common.c
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LDLIBS)

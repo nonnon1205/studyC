@@ -9,7 +9,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/time.h>
-#include "log_wrapper.h"
+#include "unified_logger.h"
 #include "msg_common.h"
 
 // --- 1. UDPスレッド (正規化してキューへ) ---

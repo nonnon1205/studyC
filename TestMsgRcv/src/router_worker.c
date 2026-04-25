@@ -7,7 +7,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include "log_wrapper.h"
+#include "unified_logger.h"
 #include "router_worker.h"
 #include "msg_common.h"
 #define DEST_TCP_PORT 7777 // 最終目的地(TestUDPKill)のポート

@@ -209,8 +209,8 @@ int main(int argc, char *argv[]) {
                     atomic_store_explicit(&g_keep_running, false, memory_order_release);
                     send_shm_quit(router_ctx.ipc_msqid);
                     if (g_shutdown_pipe[1] != -1) {
-                        char dummy = 'x';
-                        write(g_shutdown_pipe[1], &dummy, 1);
+                        close(g_shutdown_pipe[1]);
+                        g_shutdown_pipe[1] = -1;
                     }
                 }
                 break;
@@ -221,9 +221,8 @@ int main(int argc, char *argv[]) {
                 log_err("[Main] 内部致命エラー通知: %s", rx_msg.data.ipc_payload);
                 atomic_store_explicit(&g_keep_running, false, memory_order_release);
                 if (g_shutdown_pipe[1] != -1) {
-                    char dummy = 'x';
-                    //write(g_shutdown_pipe[1], &dummy, 1);
                     close(g_shutdown_pipe[1]);
+                    g_shutdown_pipe[1] = -1;
                 }
                 break;
             default:
@@ -233,10 +232,8 @@ int main(int argc, char *argv[]) {
 
     atomic_store_explicit(&g_keep_running, false, memory_order_release);
     if (g_shutdown_pipe[1] != -1) {
-        char dummy = 'x';
-        //write(g_shutdown_pipe[1], &dummy, 1);
         close(g_shutdown_pipe[1]);
-        
+        g_shutdown_pipe[1] = -1;
     }
     if (router_started) {
         send_shm_quit(router_ctx.ipc_msqid);
