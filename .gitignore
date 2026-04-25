@@ -4,5 +4,11 @@
 *.a
 lib/
 
+# Executables
+pollio
+threadTest
+TestMsgRcv
+test_common
+
 # Local environment settings
 env.mk
