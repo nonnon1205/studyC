@@ -4,9 +4,10 @@
 # モジュール固有のコンパイルオプション
 override CFLAGS += -std=c11 -pthread -D_POSIX_C_SOURCE=200809L -Iinclude -I../lib/include
 SRCDIR = src
+OBJDIR = obj
 TARGET = pollio
 SRCS = $(SRCDIR)/main.c $(SRCDIR)/poll_io.c
-OBJS = $(SRCS:.c=.o)
+OBJS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SRCS))
 LIBDIRNAME = ../lib
 LDFLAGS = -L$(LIBDIRNAME)
 LDLIBS = -lshm -lcommon
@@ -18,8 +19,11 @@ all: $(TARGET)
 $(TARGET): $(OBJS) $(LIBDIRNAME)/libshm.a
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
-$(SRCDIR)/%.o: $(SRCDIR)/%.c
+$(OBJDIR)/%.o: $(SRCDIR)/%.c | $(OBJDIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
+
 clean:
-	rm -f $(SRCDIR)/*.o $(TARGET)
+	rm -rf $(OBJDIR) $(TARGET)
