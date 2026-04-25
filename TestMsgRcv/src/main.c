@@ -131,7 +131,7 @@ int main(int argc, char *argv[]) {
     router_ctx.ipc_msqid = msgget(SYSTEM_IPC_KEY, 0666 | IPC_CREAT);
     router_ctx.shm_handle = shm_api_init();
     if (!router_ctx.shm_handle) {
-        fprintf(stderr, "共有メモリの初期化に失敗しました。\n");
+        log_err("共有メモリの初期化に失敗しました。");
         goto cleanup_msq;
     }
 

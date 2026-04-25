@@ -10,12 +10,16 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <errno.h>
 #include "udp_common.h"
+#include "unified_logger.h"
 
 int main() {
     pthread_t t_udp, t_ipc, t_sig, t_tcp;
     AppContext ctx;
     sigset_t set;
+
+    log_init("TestUDPKill");
 
     // 前準備
     sigemptyset(&set);
@@ -31,7 +35,8 @@ int main() {
 
     // ★追加: TCPスレッドを叩き起こす用のパイプを作成
     if (pipe(ctx.shutdown_pipe) < 0) {
-        perror("pipe");
+        log_err("pipe: %s", strerror(errno));
+        log_close();
         return EXIT_FAILURE;
     }
 
@@ -56,7 +61,7 @@ int main() {
     }
     pthread_mutex_unlock(&ctx.mtx);
 
-    printf("\n[Main] --- 終了通知シーケンス開始 ---\n");
+    log_info("[Main] --- 終了通知シーケンス開始 ---");
 
     // /* UDP worker disabled - Poison Pill
     // 1. UDPスレッドに致死命令（Poison Pill）を送る
@@ -79,7 +84,7 @@ int main() {
     // ★追加: 4. TCPスレッド(View)をパイプで叩き起こす
     char dummy = 'X';
     if (write(ctx.shutdown_pipe[1], &dummy, 1) < 0) {
-        perror("write to shutdown_pipe");
+        log_err("write to shutdown_pipe: %s", strerror(errno));
     }
     
     // 各スレッドの合流を待つ
@@ -95,7 +100,8 @@ int main() {
     close(ctx.udp_fd);
     close(ctx.shutdown_pipe[0]); // ★パイプの片付け
     close(ctx.shutdown_pipe[1]); // ★パイプの片付け
-    printf("[Main] 全てのスレッドを回収。リソースを解放しました。\n");
+    log_info("[Main] 全てのスレッドを回収。リソースを解放しました。");
 
+    log_close();
     return 0;
 }

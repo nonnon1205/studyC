@@ -6,7 +6,7 @@ override CFLAGS += -pthread -Iinclude -I../lib/include
 TARGET  = threadTest
 SRCS    = src/main.c src/udp_worker.c src/ipc_worker.c src/signal_thread.c src/tcp_worker.c
 LDFLAGS = -L../lib
-LDLIBS  = -lshm
+LDLIBS  = -lshm -lcommon
 
 .PHONY: all clean
 

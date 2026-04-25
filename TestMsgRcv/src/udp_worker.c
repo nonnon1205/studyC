@@ -52,12 +52,11 @@ void* udp_worker(void* arg) {
         int ready = select(nfds, &readfds, NULL, NULL, NULL);
         if (ready < 0) {
             if (errno == EINTR) continue;
-            printf("[UDP] select error: %s\n", strerror(errno));
             log_err("[UDP] select: %s", strerror(errno));
             break;
         }
         if (FD_ISSET(stop_fd, &readfds)) {
-            printf("[UDP] シャットダウンシグナルを受信しました。ループを抜けます。\n");
+            log_info("[UDP] シャットダウンシグナルを受信しました。ループを抜けます。");
             break;
         }
         if (FD_ISSET(fd, &readfds)) {

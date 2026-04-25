@@ -22,7 +22,7 @@ void* router_worker(void* arg) {
     RouterContext* ctx = (RouterContext*)arg;
     IpcNotifyMessage notify;
     
-    printf("[Router] MQの監視、およびTCPゲートウェイを開始します...\n");
+    log_info("[Router] MQの監視、およびTCPゲートウェイを開始します...");
 
     // 1. TCPクライアントソケットの準備
     int tcp_sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -55,14 +55,14 @@ void* router_worker(void* arg) {
         return NULL;
     }
     tcp_connected = 1;
-    printf("[Router] TestUDPKill (Port: %d) とTCP接続確立！\n", DEST_TCP_PORT);
+    log_info("[Router] TestUDPKill (Port: %d) とTCP接続確立！", DEST_TCP_PORT);
 
     // 2. Control Plane (MQ) の監視ループ
     while (1) {
         // MSG_TYPE_SHM_NOTIFY (1) の通知が来るまで深くブロックして待つ！
         if (msgrcv(ctx->ipc_msqid, &notify, sizeof(IpcNotifyMessage) - sizeof(long), MSG_TYPE_SHM_NOTIFY, 0) != -1) {
             if (notify.shm_status_id == MSG_TYPE_SHM_QUIT) {
-                printf("[Router] SHM終了通知を受信しました。ループを抜けます。\n");
+                log_info("[Router] SHM終了通知を受信しました。ループを抜けます。");
                 break;
             }
             
@@ -71,7 +71,7 @@ void* router_worker(void* arg) {
             char payload[1024] = {0};
             
             if (shm_api_read(ctx->shm_handle, &status_read, payload)) {
-                printf("  -> [Router] SHM(status=%d)からデータ読出成功: %s\n", status_read, payload);
+                log_info("  -> [Router] SHM(status=%d)からデータ読出成功: %s", status_read, payload);
                 
                 // 4. TCPに乗せ換えて TestUDPKill へ発射！
                 if (tcp_connected && tcp_sock >= 0) {
@@ -80,13 +80,13 @@ void* router_worker(void* arg) {
                     snprintf(tcp_buf, sizeof(tcp_buf), "[TCP-RELAY] %s\n", payload);
                     
                     if (send(tcp_sock, tcp_buf, strlen(tcp_buf), 0) > 0) {
-                        printf("  -> [Router] TCPでTestUDPKillへ転送完了\n");
+                        log_info("  -> [Router] TCPでTestUDPKillへ転送完了");
                     } else {
-                        perror("  -> [Router] TCP送信エラー");
+                        log_err("  -> [Router] TCP送信エラー: %s", strerror(errno));
                     }
                 }
             } else {
-                printf("  -> [Router] SHMの読み取り失敗\n");
+                log_err("  -> [Router] SHMの読み取り失敗");
             }
         }
     }

@@ -9,7 +9,7 @@ SRCS = $(SRCDIR)/main.c $(SRCDIR)/poll_io.c
 OBJS = $(SRCS:.c=.o)
 LIBDIRNAME = ../lib
 LDFLAGS = -L$(LIBDIRNAME)
-LDLIBS = -lshm
+LDLIBS = -lshm -lcommon
 
 .PHONY: all clean
 
