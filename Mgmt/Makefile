@@ -16,7 +16,8 @@ HEADERS = $(INCDIR_LOCAL)/mgmt_protocol.h \
           $(INCDIR_LOCAL)/event_handler.h \
           $(INCDIR_LOCAL)/unified_logger.h \
           $(INCDIR_LOCAL)/metrics_collector.h \
-          $(INCDIR_LOCAL)/mgmt_socket.h
+          $(INCDIR_LOCAL)/mgmt_socket.h	\
+          $(INCDIR_LOCAL)/unified_logger.h
 
 # Installation targets
 PREFIX = $(abspath ..)

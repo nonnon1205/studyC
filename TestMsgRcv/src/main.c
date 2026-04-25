@@ -13,7 +13,7 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <time.h>
-#include "log_wrapper.h"
+#include "unified_logger.h"
 #include "msg_common.h"
 #include "router_worker.h"
 #include "shared_ipc.h"

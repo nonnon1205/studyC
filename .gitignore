@@ -1,10 +1,4 @@
-# Build artifacts
-*.o
-*.d
-*.a
-# Executables
-TestMsgRcv/TestMsgRcv
-PollIO/pollio
-
-# Build directories
-TestMsgRcv/obj/
+# libディレクトリ配下はすべて無視する（ソースコードなどを誤ってコミットしないため）
+lib/*
+# ただし、静的ライブラリファイル (.a) と参照用のヘッダファイル (.h) は除外しない
+!lib/include/
