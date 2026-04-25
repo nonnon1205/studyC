@@ -11,11 +11,6 @@
 #include <sys/types.h>
 #include "unified_logger.h"
 
-/* ============================================================================
- * Logger Context Structure (opaque pointer implementation)
- * ============================================================================
- */
-
 struct UlogContext {
     char ident[64];              /* Syslog identifier */
     UlogLevel min_level;         /* Minimum level to output */
@@ -225,7 +220,7 @@ void ulog_trace(UlogHandle logger, const char* fmt, ...)
     }
     va_list ap;
     va_start(ap, fmt);
-    ulog_output(logger, ULOG_LEVEL_TRACE, NULL, 0, NULL, fmt, ap);
+    ulog_output(logger, ULOG_LEVEL_DEBUG, NULL, 0, NULL, fmt, ap);
     va_end(ap);
 }
 
