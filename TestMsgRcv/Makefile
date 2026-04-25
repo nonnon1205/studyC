@@ -1,5 +1,8 @@
-CC = gcc
-CFLAGS = -Wall -Wextra -g -pthread -Iinclude -I../lib/include -MMD -MP $(IFDEF)
+# 共通環境の読み込み
+-include ../env.mk
+
+# モジュール固有のコンパイルオプション
+override CFLAGS += -pthread -Iinclude -I../lib/include -MMD -MP $(IFDEF)
 TARGET = TestMsgRcv
 SRCDIR = src
 OBJDIR = obj
@@ -15,7 +18,7 @@ OBJS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SRCS))
 #IFDEF = -DENABLE_FAULT_INJECTION
 LIBDIRNAME  = ../lib
 LDFLAGS     = -L$(LIBDIRNAME)
-LDLIBS      = -lshm
+LDLIBS      = -lshm -lcommon
 
 .PHONY: all clean
 

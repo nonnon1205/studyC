@@ -1,6 +1,8 @@
-# 変数の定義
-CC      = gcc
-CFLAGS  = -Wall -Wextra -g -pthread -Iinclude -I../lib/include
+# 共通環境の読み込み
+-include ../env.mk
+
+# モジュール固有のコンパイルオプション
+override CFLAGS += -pthread -Iinclude -I../lib/include
 TARGET  = threadTest
 SRCS    = src/main.c src/udp_worker.c src/ipc_worker.c src/signal_thread.c src/tcp_worker.c
 LDFLAGS = -L../lib

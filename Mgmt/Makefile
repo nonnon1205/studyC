@@ -1,69 +1,40 @@
-CC = gcc
-CFLAGS = -Wall -Wextra -g -pthread -Iinclude -D_GNU_SOURCE -D_POSIX_C_SOURCE=200809L
-SRCDIR = src
-OBJDIR = obj
-INCDIR_LOCAL = include
+# 共通環境の読み込み
+-include ../env.mk
 
-# Source files for Mgmt module
-SRCS = $(SRCDIR)/mgmt_protocol.c \
-       $(SRCDIR)/event_handler.c \
-       $(SRCDIR)/unified_logger.c \
-       $(SRCDIR)/metrics_collector.c \
-       $(SRCDIR)/mgmt_socket.c
+# モジュール固有のコンパイルオプション
+override CFLAGS += -pthread -Iinclude -D_GNU_SOURCE -D_POSIX_C_SOURCE=200809L
 
-OBJS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SRCS))
-HEADERS = $(INCDIR_LOCAL)/mgmt_protocol.h \
-          $(INCDIR_LOCAL)/event_handler.h \
-          $(INCDIR_LOCAL)/unified_logger.h \
-          $(INCDIR_LOCAL)/metrics_collector.h \
-          $(INCDIR_LOCAL)/mgmt_socket.h	\
-          $(INCDIR_LOCAL)/unified_logger.h
+# パス設定
+PREFIX  := $(abspath ..)
+LIBDIR  := $(PREFIX)/lib
+INCDIR  := $(LIBDIR)/include
 
-# Installation targets
-PREFIX = $(abspath ..)
-LIB_INCDIR = $(PREFIX)/lib/include
-LIB_SRCDIR = $(PREFIX)/lib/src
-TARGET_LIB = $(PREFIX)/lib/libmgmt.a
+# ターゲット
+TARGET  := $(LIBDIR)/libmgmt.a
+SRCS    := $(wildcard src/*.c)
+OBJS    := $(SRCS:src/%.c=obj/%.o)
+HDRS    := $(wildcard include/*.h)
 
-.PHONY: all install install-headers install-sources clean
+.PHONY: all clean install
 
-all: $(TARGET_LIB)
+all: $(TARGET) install
 
-install: all install-headers install-sources
+# 1. ライブラリの生成
+$(TARGET): $(OBJS)
+	@mkdir -p $(LIBDIR)
+	$(AR) rcs $@ $^
 
-install-headers: | $(LIB_INCDIR)
-	@echo "[Mgmt] Installing headers to $(LIB_INCDIR)..."
-	@install -m 644 $(HEADERS) $(LIB_INCDIR)/
+# 2. オブジェクトファイルのビルド
+obj/%.o: src/%.c | obj
+	$(CC) $(CFLAGS) -c $< -o $@
 
-install-sources: | $(LIB_SRCDIR)
-	@echo "[Mgmt] Installing source files to $(LIB_SRCDIR)..."
-	@install -m 644 $(SRCS) $(LIB_SRCDIR)/
+obj:
+	mkdir -p obj
 
-$(LIB_INCDIR):
-	@mkdir -p $(LIB_INCDIR)
-
-$(LIB_SRCDIR):
-	@mkdir -p $(LIB_SRCDIR)
-
-$(TARGET_LIB): $(OBJS)
-	@echo "[Mgmt] Creating library archive: $@"
-	@ar rcs $@ $^
-	@echo "[Mgmt] Built: $@"
-
-$(OBJDIR)/%.o: $(SRCDIR)/%.c | $(OBJDIR)
-	@echo "[Mgmt] Compiling: $<"
-	@$(CC) $(CFLAGS) -c $< -o $@
-
-$(OBJDIR):
-	@mkdir -p $(OBJDIR)
+# 3. インストール（ヘッダのコピー）
+install: $(HDRS)
+	mkdir -p $(INCDIR)
+	$(if $(HDRS),$(INSTALL) -m 644 $^ $(INCDIR)/)
 
 clean:
-	@echo "[Mgmt] Cleaning..."
-	@rm -rf $(OBJDIR) $(TARGET_LIB)
-	@echo "[Mgmt] Cleaned"
-
-print-vars:
-	@echo "SRCS: $(SRCS)"
-	@echo "OBJS: $(OBJS)"
-	@echo "TARGET_LIB: $(TARGET_LIB)"
-	@echo "LIB_INCDIR: $(LIB_INCDIR)"
+	rm -rf obj $(TARGET) $(if $(HDRS),$(patsubst include/%.h,$(INCDIR)/%.h,$(HDRS)))

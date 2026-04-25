@@ -1,34 +1,40 @@
-CC = gcc
-CFLAGS = -Wall -Wextra -g -pthread -Iinclude
-SRCDIR = src
-OBJDIR = obj
-SRCS = $(SRCDIR)/shm_api.c
-OBJS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SRCS))
-PREFIX = $(abspath ..)
-INCDIR = $(PREFIX)/lib/include
-TARGET = $(PREFIX)/lib/libshm.a
+# 共通環境の読み込み
+-include ../env.mk
 
-.PHONY: all install install-headers clean
+# モジュール固有のコンパイルオプション
+override CFLAGS += -pthread -Iinclude
 
-all: $(TARGET)
+# パス設定
+PREFIX  := $(abspath ..)
+LIBDIR  := $(PREFIX)/lib
+INCDIR  := $(LIBDIR)/include
 
-install: all install-headers
+# ターゲット
+TARGET  := $(LIBDIR)/libshm.a
+SRCS    := $(wildcard src/*.c)
+OBJS    := $(SRCS:src/%.c=obj/%.o)
+HDRS    := $(wildcard include/*.h)
 
-install-headers: | $(INCDIR)
-	install -m 644 include/shared_ipc.h $(INCDIR)/
-	install -m 644 include/shm_api.h $(INCDIR)/
+.PHONY: all clean install
 
-$(INCDIR):
-	mkdir -p $(INCDIR)
+all: $(TARGET) install
 
+# 1. ライブラリの生成
 $(TARGET): $(OBJS)
-	ar rcs $@ $^
+	@mkdir -p $(LIBDIR)
+	$(AR) rcs $@ $^
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.c | $(OBJDIR)
+# 2. オブジェクトファイルのビルド
+obj/%.o: src/%.c | obj
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(OBJDIR):
-	mkdir -p $(OBJDIR)
+obj:
+	mkdir -p obj
+
+# 3. インストール（ヘッダのコピー）
+install: $(HDRS)
+	mkdir -p $(INCDIR)
+	$(if $(HDRS),$(INSTALL) -m 644 $^ $(INCDIR)/)
 
 clean:
-	rm -rf $(OBJDIR) $(TARGET)
+	rm -rf obj $(TARGET) $(if $(HDRS),$(patsubst include/%.h,$(INCDIR)/%.h,$(HDRS)))

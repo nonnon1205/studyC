@@ -1,6 +1,8 @@
-CC = gcc
-CFLAGS = -Wall -Wextra -std=c11 -g -pthread -D_POSIX_C_SOURCE=200809L
-INCLUDES = -Iinclude -I../lib/include
+# 共通環境の読み込み
+-include ../env.mk
+
+# モジュール固有のコンパイルオプション
+override CFLAGS += -std=c11 -pthread -D_POSIX_C_SOURCE=200809L -Iinclude -I../lib/include
 SRCDIR = src
 TARGET = pollio
 SRCS = $(SRCDIR)/main.c $(SRCDIR)/poll_io.c
@@ -14,10 +16,10 @@ LDLIBS = -lshm
 all: $(TARGET)
 
 $(TARGET): $(OBJS) $(LIBDIRNAME)/libshm.a
-	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $^ $(LDFLAGS) $(LDLIBS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
 $(SRCDIR)/%.o: $(SRCDIR)/%.c
-	$(CC) $(CFLAGS) $(INCLUDES) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
 	rm -f $(SRCDIR)/*.o $(TARGET)
