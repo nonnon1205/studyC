@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <sys/msg.h>
 #include "unified_logger.h"
+#define MODULE_NAME "MsgCommon"
+#include "debug_log.h"
 #include "msg_common.h"
 
 // --- ヘルパー：内部メッセージ構築 ---
@@ -31,6 +33,7 @@ int send_to_main(int msqid, const InternalMsg* msg) {
     if (msg == NULL) {
         return -1;
     }
+    DBG("内部キュー送信: msqid=%d, event=%d", msqid, (int)msg->event);
     if (msgsnd(msqid, msg, sizeof(InternalMsg) - sizeof(long), 0) == -1) {
         log_err("[Common] msgsnd: %s", strerror(errno));
         return -1;

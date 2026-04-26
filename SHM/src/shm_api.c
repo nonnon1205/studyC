@@ -15,6 +15,8 @@
 #include <syslog.h>
 #include "shm_common.h"
 #include "shm_api.h"
+#define MODULE_NAME "ShmApi"
+#include "debug_log.h"
 
 // 不透明ポインタ (ShmHandle) の実体
 struct ShmContext {
@@ -58,6 +60,7 @@ ShmHandle shm_api_init(void) {
     ctx->shmid = shmget(SHM_KEY, sizeof(SharedData), IPC_CREAT | IPC_EXCL | 0666);
     if (ctx->shmid >= 0) {
         is_creator = true; // 私が作りました
+        DBG("共有メモリ新規作成: shmid=%d", ctx->shmid);
         syslog(LOG_INFO, "[SHM] 共有メモリを新規作成しました。");
     } else if (errno == EEXIST) {
         // 既に誰かが作っている場合は、単に取得する
@@ -108,7 +111,8 @@ bool shm_api_write(ShmHandle handle, int status, const char* msg) {
 
     handle->shm_ptr->status_code = status;
     strncpy(handle->shm_ptr->message, msg, 255);
-    
+    DBG("SHM書込み: status=%d, msg=\"%s\"", status, msg);
+
     pthread_mutex_unlock(&handle->shm_ptr->mtx);
     return true;
 }
@@ -121,6 +125,8 @@ bool shm_api_read(ShmHandle handle, int* out_status, char* out_msg) {
 
     if (out_status) *out_status = handle->shm_ptr->status_code;
     if (out_msg) strncpy(out_msg, handle->shm_ptr->message, 255);
+    DBG("SHM読出し: status=%d, msg=\"%s\"",
+        out_status ? *out_status : -1, out_msg ? out_msg : "(null)");
 
     pthread_mutex_unlock(&handle->shm_ptr->mtx);
     return true;

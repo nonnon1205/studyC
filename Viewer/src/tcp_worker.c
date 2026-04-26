@@ -9,6 +9,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include "udp_common.h"
+#define MODULE_NAME "TCP"
+#include "debug_log.h"
 
 #define LISTEN_PORT 7777
 
@@ -76,6 +78,7 @@ void* tcp_worker(void* arg) {
                 socklen_t client_len = sizeof(client_addr);
                 client_sock = accept(server_sock, (struct sockaddr*)&client_addr, &client_len);
                 if (client_sock >= 0) {
+                    DBG("TCP新規接続受付: client_sock=%d", client_sock);
                     printf("[TCP View] 🟢 TestMsgRcv が接続しました！\n");
                 }
             } else {
@@ -83,10 +86,12 @@ void* tcp_worker(void* arg) {
                 int bytes_read = recv(client_sock, buffer, sizeof(buffer) - 1, 0);
                 if (bytes_read > 0) {
                     buffer[bytes_read] = '\0';
+                    DBG("TCP受信: %d bytes", bytes_read);
                     printf("----------------------------------------\n");
                     printf("📥 【TCP受信データ】\n%s", buffer);
                     printf("----------------------------------------\n\n");
                 } else {
+                    DBG("TCP切断検知: recv=%d", bytes_read);
                     printf("[TCP View] 🔴 TestMsgRcv が切断しました。\n");
                     close(client_sock);
                     client_sock = -1;

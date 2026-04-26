@@ -7,6 +7,8 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include "udp_common.h"
+#define MODULE_NAME "IPC"
+#include "debug_log.h"
 
 
 
@@ -20,6 +22,7 @@ void* ipc_worker(void* arg) {
 
     while (1) {
         if (msgrcv(ctx->msqid, &message, sizeof(message.msg_text), 1, 0) != -1) {
+            DBG("IPC受信: \"%s\"", message.msg_text);
             if (strncmp(message.msg_text, "EXIT", 4) == 0) {
                 printf("[IPC] 終了メッセージを受信。ループを抜けます。\n");
                 break;

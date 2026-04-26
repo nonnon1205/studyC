@@ -3,7 +3,7 @@
 
 # モジュール固有のコンパイルオプション
 override CFLAGS += -pthread -Iinclude -I../lib/include -MMD -MP $(IFDEF)
-TARGET = TestMsgRcv
+TARGET = Router
 SRCDIR = src
 OBJDIR = obj
 SRCS = \

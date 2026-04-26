@@ -5,7 +5,7 @@
 override CFLAGS += -std=c11 -pthread -D_POSIX_C_SOURCE=200809L -Iinclude -I../lib/include
 SRCDIR = src
 OBJDIR = obj
-TARGET = pollio
+TARGET = Collector
 SRCS = $(SRCDIR)/main.c $(SRCDIR)/poll_io.c
 OBJS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SRCS))
 LIBDIRNAME = ../lib

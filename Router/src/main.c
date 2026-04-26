@@ -113,7 +113,7 @@ int main(int argc, char *argv[]) {
     int router_started = 0;
     int ret = EXIT_FAILURE; // Default to failure
 
-    log_init("TestMsgRcv");
+    log_init("Router");
 
     int mainmsqid = msgget(IPC_PRIVATE, 0666 | IPC_CREAT);
     if (mainmsqid == -1) {

@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <pthread.h>
 #include "unified_logger.h"
+#define MODULE_NAME "ShmWorker"
+#include "debug_log.h"
 #include "msg_common.h"
 #include "time.h"
 #include "shm_api.h" // 隣のプロジェクトの公開API
@@ -32,6 +34,7 @@ void* shm_worker(void* arg) {
         if (shm_api_read(shm, &current_status, msg_buf)) {
             // ステータスが前回と違う場合（更新された場合）
             if (current_status != last_status) {
+                DBG("SHM状態変化: %d -> %d, msg=\"%s\"", last_status, current_status, msg_buf);
                 log_info("[SHM_Worker] 変化検知: status=%d, msg=%s", current_status, msg_buf);
                 
                 // メインスレッドへ EV_IPC イベントとして送信

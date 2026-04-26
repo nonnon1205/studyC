@@ -83,7 +83,8 @@ static void ulog_output(UlogHandle logger, UlogLevel level,
     /* Add timestamp if enabled */
     if (logger->flags & 0x04) {
         time_t now = time(NULL);
-        struct tm* tm_info = localtime(&now);
+        struct tm tm_buf;
+        struct tm* tm_info = localtime_r(&now, &tm_buf);
         char time_str[32];
         strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", tm_info);
         offset += snprintf(message + offset, sizeof(message) - offset,
@@ -97,7 +98,7 @@ static void ulog_output(UlogHandle logger, UlogLevel level,
     /* Add thread ID if enabled */
     if (logger->flags & 0x02) {
         offset += snprintf(message + offset, sizeof(message) - offset,
-                          "[TID:%ld] ", pthread_self());
+                          "[TID:%lu] ", (unsigned long)pthread_self());
     }
 
     /* Add context tag if set */
@@ -220,7 +221,7 @@ void ulog_trace(UlogHandle logger, const char* fmt, ...)
     }
     va_list ap;
     va_start(ap, fmt);
-    ulog_output(logger, ULOG_LEVEL_DEBUG, NULL, 0, NULL, fmt, ap);
+    ulog_output(logger, ULOG_LEVEL_TRACE, NULL, 0, NULL, fmt, ap);
     va_end(ap);
 }
 
@@ -341,7 +342,7 @@ int ulog_stats(UlogHandle logger, uint64_t* total_logs, uint64_t* dropped_logs)
     if (!logger) return -1;
 
     pthread_mutex_lock(&logger->lock);
-    if (total_logs) *total_logs = logger->total_messages;
+    if (total_logs) *total_logs = logger->total_messages + logger->dropped_messages;
     if (dropped_logs) *dropped_logs = logger->dropped_messages;
     pthread_mutex_unlock(&logger->lock);
 

@@ -9,6 +9,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include "unified_logger.h"
+#define MODULE_NAME "Router"
+#include "debug_log.h"
 #include "router_worker.h"
 #include "msg_common.h"
 #define DEST_TCP_PORT 7777 // 最終目的地(TestUDPKill)のポート
@@ -41,6 +43,7 @@ void* router_worker(void* arg) {
 
     // TCPサーバーへの接続をリトライする
     for (int i = 0; i < CONNECT_MAX_RETRIES; i++) {
+        DBG("TCP接続試行 #%d to 127.0.0.1:%d", i + 1, DEST_TCP_PORT);
         if (connect(tcp_sock, (struct sockaddr*)&dest_addr, sizeof(dest_addr)) == 0) {
             tcp_connected = 1; // 接続成功
             break;
@@ -74,25 +77,28 @@ void* router_worker(void* arg) {
     while (1) {
         // MSG_TYPE_SHM_NOTIFY (1) の通知が来るまで深くブロックして待つ！
         if (msgrcv(ctx->ipc_msqid, &notify, sizeof(IpcNotifyMessage) - sizeof(long), MSG_TYPE_SHM_NOTIFY, 0) != -1) {
+            DBG("MQ通知受信: shm_status_id=%d", notify.shm_status_id);
             if (notify.shm_status_id == MSG_TYPE_SHM_QUIT) {
                 log_info("[Router] SHM終了通知を受信しました。ループを抜けます。");
                 break;
             }
-            
+
             // 3. 通知を受けたら Data Plane (SHM) から重いデータを回収
             int status_read;
             char payload[1024] = {0};
-            
+
             if (shm_api_read(ctx->shm_handle, &status_read, payload)) {
+                DBG("SHM読出し成功: status=%d, payload=\"%s\"", status_read, payload);
                 log_info("  -> [Router] SHM(status=%d)からデータ読出成功: %s", status_read, payload);
-                
+
                 // 4. TCPに乗せ換えて TestUDPKill へ発射！
                 if (tcp_connected && tcp_sock >= 0) {
                     // TCP通信なので、パケットの区切り(改行など)を付けて送るのが親切です
                     char tcp_buf[1100];
                     snprintf(tcp_buf, sizeof(tcp_buf), "[TCP-RELAY] %s\n", payload);
-                    
+
                     if (send(tcp_sock, tcp_buf, strlen(tcp_buf), 0) > 0) {
+                        DBG("TCP送信完了: %zu bytes", strlen(tcp_buf));
                         log_info("  -> [Router] TCPでTestUDPKillへ転送完了");
                     } else {
                         log_err("  -> [Router] TCP送信エラー: %s", strerror(errno));

@@ -7,14 +7,17 @@ endif
 # その上で環境変数を読み込む
 include env.mk
 
-SUBDIRS = Common SHM Mgmt TestMsgRcv PollIO TestUDPKill
+SUBDIRS = Common SHM Mgmt Collector Router Viewer
 
-.PHONY: all clean $(SUBDIRS)
+.PHONY: all debug clean $(SUBDIRS)
 
 all: $(SUBDIRS)
 
+debug:
+	$(MAKE) IFDEF="-DDEBUG" all
+
 $(SUBDIRS):
-	$(MAKE) -C $@
+	$(MAKE) -C $@ IFDEF=$(IFDEF)
 
 clean:
 	@for dir in $(SUBDIRS); do \

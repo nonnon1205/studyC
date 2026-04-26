@@ -10,6 +10,8 @@
 #include <netinet/in.h>
 #include <sys/time.h>
 #include "unified_logger.h"
+#define MODULE_NAME "UDP"
+#include "debug_log.h"
 #include "msg_common.h"
 
 // --- 1. UDPスレッド (正規化してキューへ) ---
@@ -69,11 +71,13 @@ void* udp_worker(void* arg) {
             if (n == 0) continue;
 
             buf[n] = '\0';
+            DBG("UDP受信: %d bytes, data=\"%s\"", n, buf);
             if (strcmp(buf, UDP_QUIT_CMD) == 0) {
                 log_info("[UDP] 外部 QUIT を受信しました。終了処理はシグナルを待ちます。");
                 continue;
             }
             send_udp_event(msqid, buf);
+            DBG("UDPイベントをメインキューへ送信");
         }
     }
 

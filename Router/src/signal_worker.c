@@ -10,6 +10,8 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include "unified_logger.h"
+#define MODULE_NAME "Signal"
+#include "debug_log.h"
 #include "msg_common.h"
 
 // --- 2. シグナルスレッド (正規化してキューへ) ---
@@ -38,6 +40,7 @@ void* signal_worker(void* arg) {
             log_err("[Signal] sigwait: %s", strerror(ret));
             break;
         }
+        DBG("シグナル受信: sig=%d", sig);
 #ifdef ENABLE_FAULT_INJECTION
         if (g_fail_race) {
             g_race_flag++;

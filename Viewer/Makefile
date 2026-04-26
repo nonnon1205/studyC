@@ -2,10 +2,10 @@
 -include ../env.mk
 
 # モジュール固有のコンパイルオプション
-override CFLAGS += -pthread -Iinclude -I../lib/include
+override CFLAGS += -pthread -Iinclude -I../lib/include $(IFDEF)
 SRCDIR  = src
 OBJDIR  = obj
-TARGET  = threadTest
+TARGET  = Viewer
 SRCS    = $(SRCDIR)/main.c $(SRCDIR)/udp_worker.c $(SRCDIR)/ipc_worker.c $(SRCDIR)/signal_thread.c $(SRCDIR)/tcp_worker.c
 OBJS    = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SRCS))
 LDFLAGS = -L../lib

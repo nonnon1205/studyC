@@ -19,7 +19,7 @@ int main() {
     AppContext ctx;
     sigset_t set;
 
-    log_init("TestUDPKill");
+    log_init("Viewer");
 
     // 前準備
     sigemptyset(&set);
