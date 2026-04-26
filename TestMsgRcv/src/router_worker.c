@@ -4,6 +4,7 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
+#include <sys/select.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -45,7 +46,19 @@ void* router_worker(void* arg) {
             break;
         }
         log_warn("[Router] TCP接続試行 #%d 失敗: %s. %d秒後にリトライします...", i + 1, strerror(errno), CONNECT_RETRY_DELAY_S);
-        sleep(CONNECT_RETRY_DELAY_S);
+        
+        int stop_fd = g_shutdown_pipe[0];
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        FD_SET(stop_fd, &readfds);
+        struct timeval tv = {CONNECT_RETRY_DELAY_S, 0};
+        
+        int ready = select(stop_fd + 1, &readfds, NULL, NULL, &tv);
+        if (ready > 0) {
+            log_info("[Router] リトライ待機中にシャットダウン要求を受信。処理を中断します。");
+            close(tcp_sock);
+            return NULL;
+        }
     }
 
     if (!tcp_connected) {
