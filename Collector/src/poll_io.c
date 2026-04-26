@@ -51,7 +51,7 @@ bool handle_stdin_read(int udp_fd) {
         return false; // ループ終了の合図
     }
     else if (strncmp(input, "udp ", 4) == 0) {
-        // TestMsgRcv (8888番ポート) にパケットを撃ち込む
+        // Router (8888番ポート) にパケットを撃ち込む
         struct sockaddr_in dest = {0};
         dest.sin_family = AF_INET;
         dest.sin_port = htons(UDP_SEND_PORT);
@@ -76,7 +76,7 @@ void handle_udp_read(int udp_fd, int ipc_msqid, ShmHandle shm_handle) {
     int n = recvfrom(udp_fd, buffer, sizeof(buffer)-1, 0, (struct sockaddr *)&cliaddr, &len);
     if (n > 0) {
         buffer[n] = '\0';
-        printf("\n  <- [PollIO] %s:%d からUDP受信: %s\n", 
+        printf("\n  <- [Collector] %s:%d からUDP受信: %s\n",
                inet_ntoa(cliaddr.sin_addr), ntohs(cliaddr.sin_port), buffer);
         
         // ========================================================
@@ -97,7 +97,7 @@ void handle_udp_read(int udp_fd, int ipc_msqid, ShmHandle shm_handle) {
 
             // IPC_NOWAITでブロックさせずにサッと投げる
             if (msgsnd(ipc_msqid, &notify, sizeof(IpcNotifyMessage) - sizeof(long), IPC_NOWAIT) == 0) {
-                printf("  -> [MQ] TestMsgRcvへ通知完了\n");
+                printf("  -> [MQ] Routerへ通知完了\n");
             } else {
                 perror("  -> [MQ] 通知失敗");
             }
@@ -119,7 +119,7 @@ void run_event_loop(int udp_fd,int ipc_msqid, ShmHandle shm_handle) {
     fds[1].fd = udp_fd;
     fds[1].events = POLLIN;
 
-    printf("[PollIO] イベントループ開始 (Ctrl+C または 'quit' で終了)\n");
+    printf("[Collector] イベントループ開始 (Ctrl+C または 'quit' で終了)\n");
     printf("> ");
     fflush(stdout);
 

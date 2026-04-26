@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include "event_handler.h"
+#include "time.h"
 
 /* Global registry instance */
 static EventHandlerRegistry g_registry = {
@@ -229,10 +230,10 @@ int handler_list(char* buf, size_t buf_size)
         }
     }
 
-    offset += snprintf(buf + offset, buf_size - offset, "], "
-                      "\"total_dispatches\": %u, \"total_failures\": %u}",
-                      g_registry.total_dispatches,
-                      g_registry.total_failures);
+    snprintf(buf + offset, buf_size - offset, "], "
+             "\"total_dispatches\": %u, \"total_failures\": %u}",
+             g_registry.total_dispatches,
+             g_registry.total_failures);
 
     pthread_mutex_unlock(&g_registry.lock);
 

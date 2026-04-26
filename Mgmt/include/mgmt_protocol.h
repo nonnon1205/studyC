@@ -77,7 +77,7 @@ typedef struct {
 
     /* Command Payload (512 bytes) */
     uint8_t payload[MGMT_PAYLOAD_REQUEST_SIZE];
-} __attribute__((packed)) MgmtCommandRequest;
+} MgmtCommandRequest;
 
 /* ============================================================================
  * Response Structure (Management Socket → Client)
@@ -100,7 +100,7 @@ typedef struct {
 
     /* Response Payload (2048 bytes, typically JSON) */
     uint8_t payload[MGMT_PAYLOAD_RESPONSE_SIZE];
-} __attribute__((packed)) MgmtCommandResponse;
+} MgmtCommandResponse;
 
 /* Helper macros for payload access */
 #define MGMT_REQ_PAYLOAD_AS_STRING(req) ((const char*)(req)->payload)

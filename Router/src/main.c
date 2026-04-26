@@ -45,7 +45,7 @@ static void send_shm_quit(int msqid) {
 
 int g_fail_race = 0;
 int volatile g_race_flag = 0;
-atomic_bool g_keep_running = ATOMIC_VAR_INIT(true);
+atomic_bool g_keep_running = true;
 sem_t g_signal_worker_ready;
 int g_sem_initialized = 0;
 int g_shutdown_pipe[2] = {-1, -1};
@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
     // syslog 内部での競合（誤検知）を防止する
     tzset();    
 
-    pthread_t t1, t2, t3;
+    pthread_t t2, t3;
     int t2_created = 0, t3_created = 0;
     sigset_t set;
     int router_started = 0;
@@ -247,9 +247,8 @@ cleanup_t_race:
         pthread_cancel(t_race);
         pthread_join(t_race, NULL);
     }
-#endif
-
 cleanup_t3:
+#endif
     if (t3_created) {
         pthread_join(t3, NULL);
         log_info("t3 (Router Worker) 終了");
