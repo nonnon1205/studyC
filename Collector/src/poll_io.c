@@ -11,6 +11,7 @@
 #include <signal.h>
 #include "shared_ipc.h"
 #include "shm_api.h"
+#include "unified_logger.h"
 
 extern volatile sig_atomic_t g_keep_running;
 
@@ -18,7 +19,7 @@ extern volatile sig_atomic_t g_keep_running;
 int setup_udp_socket(uint16_t port) {
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0) {
-        perror("socket");
+        GLOG_ERR("[Setup] UDPソケット作成失敗: %s", strerror(errno));
         return -1;
     }
     struct sockaddr_in addr = {0};
@@ -27,11 +28,11 @@ int setup_udp_socket(uint16_t port) {
     addr.sin_port = htons(port);
 
     if (bind(fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-        perror("bind");
+        GLOG_ERR("[Setup] UDPポート(%d) バインド失敗: %s", port, strerror(errno));
         close(fd);
         return -1;
     }
-    printf("[Setup] 監視用UDPポート(%d) バインド完了\n", port);
+    GLOG_INFO("[Setup] 監視用UDPポート(%d) バインド完了", port);
     return fd;
 }
 
@@ -59,10 +60,10 @@ bool handle_stdin_read(int udp_fd) {
 
         const char* payload = input + 4;
         sendto(udp_fd, payload, strlen(payload), 0, (struct sockaddr*)&dest, sizeof(dest));
-        printf("  -> [UDP送信] 8888番へ: %s\n", payload);
+        GLOG_DEBUG("[UDP送信] Router(8888)へ: %s", payload);
     }
     else {
-        printf("  コマンド: quit, udp <msg>\n");
+        GLOG_INFO("コマンド: quit, udp <msg>");
     }
     return true;
 }
@@ -76,33 +77,26 @@ void handle_udp_read(int udp_fd, int ipc_msqid, ShmHandle shm_handle) {
     int n = recvfrom(udp_fd, buffer, sizeof(buffer)-1, 0, (struct sockaddr *)&cliaddr, &len);
     if (n > 0) {
         buffer[n] = '\0';
-        printf("\n  <- [Collector] %s:%d からUDP受信: %s\n",
-               inet_ntoa(cliaddr.sin_addr), ntohs(cliaddr.sin_port), buffer);
-        
-        // ========================================================
-        // 1. Data Plane (共有メモリへの実データ書き込み)
-        // ========================================================
-        // 状態IDは仮で「100」とします（本来はパケットの種類等で分ける）
-        int status_id = 100; 
-        
+        char src_ip[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &cliaddr.sin_addr, src_ip, sizeof(src_ip));
+        GLOG_INFO("[Collector] %s:%d からUDP受信: %s", src_ip, ntohs(cliaddr.sin_port), buffer);
+
+        int status_id = 100;
+
         if (shm_api_write(shm_handle, status_id, buffer)) {
-            printf("  -> [SHM] ペイロードの書き込み成功 (StatusID: %d)\n", status_id);
-            
-            // ========================================================
-            // 2. Control Plane (メッセージキューへの軽量な通知)
-            // ========================================================
+            GLOG_DEBUG("[SHM] ペイロード書き込み成功 (StatusID: %d)", status_id);
+
             IpcNotifyMessage notify;
             notify.mtype = MSG_TYPE_SHM_NOTIFY;
-            notify.shm_status_id = status_id; // 「100番を読め」とだけ伝える
+            notify.shm_status_id = status_id;
 
-            // IPC_NOWAITでブロックさせずにサッと投げる
             if (msgsnd(ipc_msqid, &notify, sizeof(IpcNotifyMessage) - sizeof(long), IPC_NOWAIT) == 0) {
-                printf("  -> [MQ] Routerへ通知完了\n");
+                GLOG_DEBUG("[MQ] Routerへ通知完了");
             } else {
-                perror("  -> [MQ] 通知失敗");
+                GLOG_ERR("[MQ] 通知失敗: %s", strerror(errno));
             }
         } else {
-            printf("  -> [SHM] 書き込み失敗 (Mutexロック等による)\n");
+            GLOG_WARN("[SHM] 書き込み失敗 (Mutexロック等による)");
         }
     }
 }
@@ -119,9 +113,7 @@ void run_event_loop(int udp_fd,int ipc_msqid, ShmHandle shm_handle) {
     fds[1].fd = udp_fd;
     fds[1].events = POLLIN;
 
-    printf("[Collector] イベントループ開始 (Ctrl+C または 'quit' で終了)\n");
-    printf("> ");
-    fflush(stdout);
+    GLOG_INFO("[Collector] イベントループ開始 (Ctrl+C または 'quit' で終了)");
 
     while (g_keep_running) {
         // ここでブロック！キーボードかUDP、どちらかにデータが来るまでOSが寝かせてくれる
@@ -132,7 +124,7 @@ void run_event_loop(int udp_fd,int ipc_msqid, ShmHandle shm_handle) {
                 // シグナル(Ctrl+C)で割り込まれた場合は、安全にループを抜ける
                 break;
             }
-            perror("[PollIO] poll error");
+            GLOG_ERR("[Collector] poll error: %s", strerror(errno));
             break;
         }
 

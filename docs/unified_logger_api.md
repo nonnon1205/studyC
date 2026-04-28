@@ -45,20 +45,37 @@ void ulog_close(UlogHandle logger);
 ```
 ロガーのリソースを安全に解放します。プログラムの終了時に呼び出します。
 
-## 4. ロギング用マクロ (推奨)
+## 4. グローバルハンドル取得API
+
+### log_get_handle
+```c
+UlogHandle log_get_handle(void);
+```
+`log_init()` で初期化したグローバルデフォルトロガーのハンドルを返します。
+`LOG_*` マクロの内部で使用されますが、呼び出し側が `ulog_set_level()` 等の handle ベース API を
+グローバルロガーに適用したいときにも利用できます。
+
+> **注意**: `log_init()` 呼び出し前は `NULL` を返します。
+
+## 5. ロギング用マクロ (推奨)
 開発者が直接 `ulog_log` などを呼ぶ代わりに、ソースコード上の位置情報（ファイル名、行番号、関数名）を自動付与できるマクロ群の使用を推奨します。
 
-### 標準マクロ
-純粋にメッセージのみを出力します。
-- `ULOG_TRACE(logger, fmt, ...)`
-- `ULOG_DEBUG(logger, fmt, ...)`
-- `ULOG_INFO(logger, fmt, ...)`
-- `ULOG_WARN(logger, fmt, ...)`
-- `ULOG_ERROR(logger, fmt, ...)`
-- `ULOG_FATAL(logger, fmt, ...)`
+### グローバルロガー用マクロ (最も簡単・推奨)
+`log_init()` を呼んでいれば、ハンドルを一切意識せずに位置情報付きログが出力できます。
 
-### ATマクロ (位置情報付き)
-`__FILE__`, `__LINE__`, `__func__` を自動で展開して出力します。障害調査・デバッグに極めて有用です。
+> **注意**: `LOG_` プレフィックスは POSIX の syslog(3) 定数 (`LOG_INFO`, `LOG_ERR` など) と衝突するため、
+> 本マクロでは `GLOG_` (Global Log) プレフィックスを使用しています。
+
+- `GLOG_TRACE(fmt, ...)`
+- `GLOG_DEBUG(fmt, ...)`
+- `GLOG_INFO(fmt, ...)`
+- `GLOG_WARN(fmt, ...)`
+- `GLOG_ERR(fmt, ...)`
+- `GLOG_FATAL(fmt, ...)`
+
+### handle ベース ATマクロ (マルチインスタンス用)
+複数のロガーインスタンスを使い分ける場合や、`ulog_init()` で独自ハンドルを持つ場合に使用します。
+`__FILE__`, `__LINE__`, `__func__` を自動で展開して出力します。
 - `ULOG_TRACE_AT(logger, fmt, ...)`
 - `ULOG_DEBUG_AT(logger, fmt, ...)`
 - `ULOG_INFO_AT(logger, fmt, ...)`
@@ -66,7 +83,11 @@ void ulog_close(UlogHandle logger);
 - `ULOG_ERROR_AT(logger, fmt, ...)`
 - `ULOG_FATAL_AT(logger, fmt, ...)`
 
-## 5. 制御・設定API
+### handle ベース標準マクロ
+位置情報なし版。`ULOG_*_AT` の簡略形として存在しますが、通常は AT 版を推奨します。
+- `ULOG_TRACE(logger, fmt, ...)` / `ULOG_DEBUG` / `ULOG_INFO` / `ULOG_WARN` / `ULOG_ERROR` / `ULOG_FATAL`
+
+## 6. 制御・設定API
 
 ### ulog_set_level / ulog_get_level
 ```c
@@ -81,7 +102,7 @@ int ulog_set_context_tag(UlogHandle logger, const char* tag);
 ```
 特定のリクエストIDやセッションIDなどのコンテキストタグ（最大32文字）を設定します。設定後、このロガーから出力されるすべてのログにタグが付与されます。
 
-## 6. 統計情報API
+## 7. 統計情報API
 
 ### ulog_stats
 ```c
@@ -97,7 +118,7 @@ int ulog_stats_reset(UlogHandle logger);
 ```
 統計情報（カウンタ）をゼロにリセットします。
 
-## 7. 後方互換（レガシー）API
+## 8. 後方互換（レガシー）API
 既存のコードベースからスムーズに移行するため、デフォルトのグローバルロガーを使用する互換APIも提供しています。
 これらの関数は引数に `UlogHandle` を取りません。
 

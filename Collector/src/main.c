@@ -5,6 +5,7 @@
 #include "pollIo_common.h"
 #include "shared_ipc.h"
 #include "shm_api.h"
+#include "unified_logger.h"
 
 // シングルスレッド特権：シグナルで書き換えるだけのシンプルな終了フラグ
 volatile sig_atomic_t g_keep_running = 1;
@@ -23,17 +24,19 @@ int main() {
     sigaction(SIGINT, &sa, NULL);
     sigaction(SIGTERM, &sa, NULL);
 
+    log_init("Collector");
+
     // --- 追加: MQとSHMの初期化 ---
     int ipc_msqid = msgget(SYSTEM_IPC_KEY, 0666 | IPC_CREAT);
     ShmHandle shm_handle = shm_api_init();
     if (!shm_handle) {
-        fprintf(stderr, "共有メモリの初期化に失敗しました。\n");
+        GLOG_FATAL("共有メモリの初期化に失敗しました。");
         return EXIT_FAILURE;
     }
 
-    printf("==========================================\n");
-    printf(" Collector 起動\n");
-    printf("==========================================\n");
+    GLOG_INFO("==========================================");
+    GLOG_INFO(" Collector 起動");
+    GLOG_INFO("==========================================");
 
     // 2. 外部からUDPを受け取るための自局ソケット設定（例: 9999番ポート）
     int udp_fd = setup_udp_socket(UDP_PORT);
@@ -49,7 +52,8 @@ int main() {
 
     // 4. クリーンアップ
     close_udp_socket(udp_fd);
-    printf("[Main] リソースを解放し、システムをクリーンに終了しました。\n");
+    GLOG_INFO("[Main] リソースを解放し、システムをクリーンに終了しました。");
+    log_close();
 
     return 0;
 }

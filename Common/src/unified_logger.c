@@ -381,6 +381,11 @@ int ulog_set_context_tag(UlogHandle logger, const char* tag)
  * ============================================================================
  */
 
+UlogHandle log_get_handle(void)
+{
+    return g_default_logger;
+}
+
 void log_init(const char* ident)
 {
     if (!g_default_logger) {

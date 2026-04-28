@@ -171,6 +171,17 @@ void ulog_log_at(UlogHandle logger, UlogLevel level,
 #define ULOG_FATAL_AT(log, fmt, ...) \
     ulog_log_at(log, ULOG_LEVEL_FATAL, __FILE__, __LINE__, __func__, fmt, ##__VA_ARGS__)
 
+/*
+ * Global-logger convenience macros - require log_init() called first.
+ * Prefix GLOG_ avoids collisions with syslog(3) constants (LOG_INFO, LOG_ERR, etc.)
+ */
+#define GLOG_TRACE(fmt, ...) ULOG_TRACE_AT(log_get_handle(), fmt, ##__VA_ARGS__)
+#define GLOG_DEBUG(fmt, ...) ULOG_DEBUG_AT(log_get_handle(), fmt, ##__VA_ARGS__)
+#define GLOG_INFO(fmt, ...)  ULOG_INFO_AT(log_get_handle(), fmt, ##__VA_ARGS__)
+#define GLOG_WARN(fmt, ...)  ULOG_WARN_AT(log_get_handle(), fmt, ##__VA_ARGS__)
+#define GLOG_ERR(fmt, ...)   ULOG_ERROR_AT(log_get_handle(), fmt, ##__VA_ARGS__)
+#define GLOG_FATAL(fmt, ...) ULOG_FATAL_AT(log_get_handle(), fmt, ##__VA_ARGS__)
+
 /* ============================================================================
  * Statistics and Debugging
  * ============================================================================
@@ -209,6 +220,12 @@ int ulog_set_context_tag(UlogHandle logger, const char* tag);
  * Backward Compatibility with log_wrapper
  * ============================================================================
  */
+
+/**
+ * Return the global default logger handle (initialized by log_init)
+ * Enables use of ULOG_*_AT macros without passing handles explicitly
+ */
+UlogHandle log_get_handle(void);
 
 /**
  * Legacy function: log_init (wraps ulog_init)
