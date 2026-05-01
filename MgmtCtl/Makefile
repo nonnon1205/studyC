@@ -1,15 +1,14 @@
-# 共通環境の読み込み
 -include ../env.mk
 
-# モジュール固有のコンパイルオプション
-override CFLAGS += -pthread -Iinclude -I../lib/include $(IFDEF)
+override CFLAGS += -std=c11 -D_POSIX_C_SOURCE=200809L -pthread \
+                   -Wall -Wextra -Iinclude -I../lib/include $(IFDEF)
+TARGET  = mgmtctl
 SRCDIR  = src
 OBJDIR  = obj
-TARGET  = Viewer
-SRCS    = $(SRCDIR)/main.c $(SRCDIR)/udp_worker.c $(SRCDIR)/ipc_worker.c $(SRCDIR)/signal_thread.c $(SRCDIR)/tcp_worker.c $(SRCDIR)/mgmt_handlers.c
+SRCS    = $(SRCDIR)/main.c $(SRCDIR)/mgmt_send.c
 OBJS    = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SRCS))
 LDFLAGS = -L../lib
-LDLIBS  = -lmgmt -lshm -lcommon
+LDLIBS  = -lmgmt -lcommon -lpthread
 
 .PHONY: all clean
 

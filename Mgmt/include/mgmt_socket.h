@@ -10,7 +10,6 @@
  *
  * UNIX domain datagram socket listener for management commands
  * Receives requests, dispatches to handlers, sends responses
- * Runs in a dedicated thread (mgmt_worker)
  * ============================================================================
  */
 
@@ -22,23 +21,29 @@ typedef struct MgmtSocket* MgmtSocketHandle;
  */
 
 /**
- * Create and bind the management socket
+ * Create and bind the management socket at the given path.
  *
- * Creates a UNIX domain datagram socket at MGMT_SOCKET_PATH
- * Initializes the socket for receiving commands
- *
+ * @param socket_path  UNIX domain socket path (use MGMT_SOCKET_PATH_* from mgmt_paths.h)
  * @return  Socket handle on success, NULL on failure
  */
-MgmtSocketHandle mgmt_socket_create(void);
+MgmtSocketHandle mgmt_socket_create(const char* socket_path);
 
 /**
  * Destroy the management socket
  *
- * Closes the socket and removes the socket file from filesystem
+ * Closes the socket and removes the socket file from filesystem.
  *
  * @param handle    Socket handle
  */
 void mgmt_socket_destroy(MgmtSocketHandle handle);
+
+/**
+ * Return the underlying file descriptor (for use with select/poll).
+ *
+ * @param handle    Socket handle
+ * @return          File descriptor, or -1 on error
+ */
+int mgmt_socket_get_fd(MgmtSocketHandle handle);
 
 /**
  * Wait for and process a single command
@@ -47,42 +52,18 @@ void mgmt_socket_destroy(MgmtSocketHandle handle);
  * Dispatches to handler and sends response back to client.
  *
  * @param handle        Socket handle
- * @param timeout_ms    Timeout in milliseconds (0 = no timeout)
+ * @param timeout_ms    Timeout in milliseconds (0 = no timeout, -1 = block)
  * @return              0 on success, -1 on timeout/error
- *
- * Note: Intended to be called in a loop from a dedicated thread
  */
 int mgmt_socket_process_one(MgmtSocketHandle handle, int timeout_ms);
 
 /**
- * Process all pending commands
- *
- * Non-blocking: processes all available commands, then returns
+ * Process all pending commands (non-blocking)
  *
  * @param handle    Socket handle
  * @return          Number of commands processed, -1 on error
  */
 int mgmt_socket_process_all(MgmtSocketHandle handle);
-
-/* ============================================================================
- * Thread Entry Point
- * ============================================================================
- */
-
-/**
- * Management worker thread entry point
- *
- * Call this with pthread_create to spawn the management socket server thread
- *
- * @param arg   Should be a pointer to MgmtSocketHandle
- * @return      NULL on exit
- *
- * Example:
- *   MgmtSocketHandle sock = mgmt_socket_create();
- *   pthread_t t_mgmt;
- *   pthread_create(&t_mgmt, NULL, mgmt_worker, sock);
- */
-void* mgmt_worker(void* arg);
 
 /* ============================================================================
  * Statistics and Monitoring

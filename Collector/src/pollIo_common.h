@@ -12,13 +12,12 @@
 #include <poll.h>
 #include <stdbool.h>
 #include "shm_api.h"
+#include "mgmt_socket.h"
 
 #define UDP_PORT 9999
 #define UDP_SEND_PORT 8888
 
 // --- 1. 初期化系（セットアップ） ---
-// 戻り値として、監視対象となるファイルディスクリプタ(FD)やIDを返します
-// 初期化・終了系
 int setup_udp_socket(uint16_t port);
 void close_udp_socket(int fd);
 
@@ -27,6 +26,7 @@ bool handle_stdin_read(int udp_fd);
 void handle_udp_read(int udp_fd, int ipc_msqid, ShmHandle shm_handle);
 
 // コアエンジン
-void run_event_loop(int udp_fd, int ipc_msqid, ShmHandle shm_handle);
+void run_event_loop(int udp_fd, int ipc_msqid, ShmHandle shm_handle,
+                    MgmtSocketHandle mgmt_sock);
 
 #endif

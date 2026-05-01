@@ -102,46 +102,49 @@ void handle_udp_read(int udp_fd, int ipc_msqid, ShmHandle shm_handle) {
 }
 
 // --- 3. メインループ (Reactorコア) ---
-void run_event_loop(int udp_fd,int ipc_msqid, ShmHandle shm_handle) {
-    struct pollfd fds[2];
+void run_event_loop(int udp_fd, int ipc_msqid, ShmHandle shm_handle,
+                    MgmtSocketHandle mgmt_sock)
+{
+    struct pollfd fds[3];
 
-    // 監視対象1: キーボード(標準入力)
     fds[0].fd = STDIN_FILENO;
     fds[0].events = POLLIN;
 
-    // 監視対象2: UDPソケット
     fds[1].fd = udp_fd;
     fds[1].events = POLLIN;
+
+    int nfds = 2;
+    if (mgmt_sock) {
+        fds[2].fd = mgmt_socket_get_fd(mgmt_sock);
+        fds[2].events = POLLIN;
+        nfds = 3;
+    }
 
     GLOG_INFO("[Collector] イベントループ開始 (Ctrl+C または 'quit' で終了)");
 
     while (g_keep_running) {
-        // ここでブロック！キーボードかUDP、どちらかにデータが来るまでOSが寝かせてくれる
-        int ret = poll(fds, 2, -1);
+        int ret = poll(fds, nfds, -1);
 
         if (ret < 0) {
-            if (errno == EINTR) {
-                // シグナル(Ctrl+C)で割り込まれた場合は、安全にループを抜ける
-                break;
-            }
+            if (errno == EINTR) break;
             GLOG_ERR("[Collector] poll error: %s", strerror(errno));
             break;
         }
 
-        // キーボードから入力があった場合
         if (fds[0].revents & POLLIN) {
-            if (!handle_stdin_read(udp_fd)) {
-                break; // quitが入力された
-            }
+            if (!handle_stdin_read(udp_fd)) break;
             printf("> ");
             fflush(stdout);
         }
 
-        // UDPパケットが届いた場合
         if (fds[1].revents & POLLIN) {
             handle_udp_read(udp_fd, ipc_msqid, shm_handle);
             printf("> ");
             fflush(stdout);
+        }
+
+        if (nfds == 3 && (fds[2].revents & POLLIN)) {
+            mgmt_socket_process_one(mgmt_sock, 0);
         }
     }
 }

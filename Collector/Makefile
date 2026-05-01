@@ -6,11 +6,11 @@ override CFLAGS += -std=c11 -pthread -D_POSIX_C_SOURCE=200809L -Iinclude -I../li
 SRCDIR = src
 OBJDIR = obj
 TARGET = Collector
-SRCS = $(SRCDIR)/main.c $(SRCDIR)/poll_io.c
+SRCS = $(SRCDIR)/main.c $(SRCDIR)/poll_io.c $(SRCDIR)/mgmt_handlers.c
 OBJS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SRCS))
 LIBDIRNAME = ../lib
 LDFLAGS = -L$(LIBDIRNAME)
-LDLIBS = -lshm -lcommon
+LDLIBS = -lmgmt -lshm -lcommon
 
 .PHONY: all clean
 

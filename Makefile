@@ -7,7 +7,7 @@ endif
 # その上で環境変数を読み込む
 include env.mk
 
-SUBDIRS = Common SHM Mgmt Collector Router Viewer
+SUBDIRS = Common SHM Mgmt Collector Router Viewer MgmtCtl
 
 .PHONY: all debug clean $(SUBDIRS)
 

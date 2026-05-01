@@ -65,6 +65,46 @@ ULOG_DEBUG_AT(handle, fmt, ...)   // __FILE__/__LINE__/__func__ 自動付与
 ### printf を残してよい箇所
 対話型ターミナルUIのプロンプト（`printf("> "); fflush(stdout);`）はそのままでよい。アプリケーションログではないため。
 
+## Doxygen 規約
+
+新規作成ファイル（MgmtCtl、各モジュールの `mgmt_handlers.c` 等）に適用する。既存コードへの遡及適用は不要。
+
+### ファイルヘッダ（各 `.c` / `.h` の先頭）
+```c
+/**
+ * @file mgmt_send.c
+ * @brief MgmtCtl から各モジュールへコマンドを送受信する
+ */
+```
+
+### 公開 API（ヘッダに書く）
+```c
+/**
+ * @brief 指定モジュールにコマンドを送信し、応答を受け取る
+ * @param socket_path 送信先ソケットパス
+ * @param req         送信するコマンドリクエスト
+ * @param resp        受信した応答の格納先
+ * @return 0 on success, -1 on error
+ */
+int mgmt_send_command(const char* socket_path,
+                      const MgmtCommandRequest* req,
+                      MgmtCommandResponse* resp);
+```
+
+### 構造体
+```c
+/** @brief mgmtctl が送受信に使う設定 */
+typedef struct {
+    const char* socket_path; /**< 送信先ソケットパス */
+    int timeout_ms;          /**< recvfrom タイムアウト（ミリ秒） */
+} MgmtSendConfig;
+```
+
+### 適用しない箇所
+- `static` な内部関数（ヘッダに露出しない）
+- ファイルスコープのみで使う型・定数
+- 既存ファイルへの追記（既存コードはそのまま）
+
 ## コーディング規約
 
 - **スレッドセーフ**: `inet_ntoa` は MT-Unsafe なので `inet_ntop` を使用すること
@@ -76,4 +116,4 @@ ULOG_DEBUG_AT(handle, fmt, ...)   // __FILE__/__LINE__/__func__ 自動付与
 - `docs/APISpecification.text` に旧モジュール名が残っている（未更新）
 - Router / Viewer に `GLOG_*` マクロ未適用（`printf`/`perror` のまま）
 - ファイル命名規則の整理（例: `udp_worker.c` → `router_udp_worker.c`）
-- Mgmt モジュールの各プロセスへの統合
+- Mgmt 統合済み（Phase 2–5 完了）。GET_METRICS / RESET_METRICS ハンドラは未実装（MetricsHandle の組み込みが必要）

@@ -20,6 +20,7 @@
 struct MgmtSocket {
     int socket_fd;                  /* UNIX domain socket FD */
     struct sockaddr_un sock_addr;   /* Socket address structure */
+    char socket_path[108];          /* Stored path for unlink on destroy */
     uint64_t total_requests;        /* Statistics: total commands received */
     uint64_t total_responses;       /* Statistics: total responses sent */
     uint64_t failed_requests;       /* Statistics: request failures */
@@ -31,12 +32,16 @@ struct MgmtSocket {
  * ============================================================================
  */
 
-MgmtSocketHandle mgmt_socket_create(void)
+MgmtSocketHandle mgmt_socket_create(const char* socket_path)
 {
+    if (!socket_path) return NULL;
+
     struct MgmtSocket* ms = (struct MgmtSocket*)malloc(sizeof(struct MgmtSocket));
     if (!ms) return NULL;
 
     memset(ms, 0, sizeof(struct MgmtSocket));
+
+    strncpy(ms->socket_path, socket_path, sizeof(ms->socket_path) - 1);
 
     /* Create UNIX domain datagram socket */
     ms->socket_fd = socket(AF_UNIX, SOCK_DGRAM, 0);
@@ -49,11 +54,11 @@ MgmtSocketHandle mgmt_socket_create(void)
     /* Prepare socket address */
     memset(&ms->sock_addr, 0, sizeof(struct sockaddr_un));
     ms->sock_addr.sun_family = AF_UNIX;
-    strncpy(ms->sock_addr.sun_path, MGMT_SOCKET_PATH,
+    strncpy(ms->sock_addr.sun_path, socket_path,
             sizeof(ms->sock_addr.sun_path) - 1);
 
     /* Remove stale socket file if it exists */
-    unlink(MGMT_SOCKET_PATH);
+    unlink(socket_path);
 
     /* Bind socket */
     if (bind(ms->socket_fd, (struct sockaddr*)&ms->sock_addr,
@@ -67,7 +72,7 @@ MgmtSocketHandle mgmt_socket_create(void)
     /* Initialize statistics */
     pthread_mutex_init(&ms->stats_lock, NULL);
 
-    printf("[Mgmt] Socket created at %s\n", MGMT_SOCKET_PATH);
+    printf("[Mgmt] Socket created at %s\n", socket_path);
 
     return ms;
 }
@@ -80,12 +85,17 @@ void mgmt_socket_destroy(MgmtSocketHandle handle)
         close(handle->socket_fd);
     }
 
-    unlink(MGMT_SOCKET_PATH);
+    unlink(handle->socket_path);
 
     pthread_mutex_destroy(&handle->stats_lock);
     free(handle);
 
     printf("[Mgmt] Socket destroyed\n");
+}
+
+int mgmt_socket_get_fd(MgmtSocketHandle handle)
+{
+    return handle ? handle->socket_fd : -1;
 }
 
 /* ============================================================================
@@ -184,41 +194,6 @@ int mgmt_socket_process_all(MgmtSocketHandle handle)
     }
 
     return processed;
-}
-
-/* ============================================================================
- * Worker Thread
- * ============================================================================
- */
-
-void* mgmt_worker(void* arg)
-{
-    MgmtSocketHandle sock = (MgmtSocketHandle)arg;
-
-    if (!sock) {
-        fprintf(stderr, "[Mgmt Worker] Invalid socket handle\n");
-        return NULL;
-    }
-
-    printf("[Mgmt Worker] Started, listening on %s\n", MGMT_SOCKET_PATH);
-
-    /* Signal handling: ignore SIGPIPE */
-    signal(SIGPIPE, SIG_IGN);
-
-    /* Main loop: process commands indefinitely */
-    while (1) {
-        /* Block until command received (default: infinite timeout) */
-        int result = mgmt_socket_process_one(sock, -1);
-
-        if (result < 0 && errno != EAGAIN) {
-            perror("[Mgmt Worker] process_one failed");
-            break;
-        }
-    }
-
-    printf("[Mgmt Worker] Exiting\n");
-
-    return NULL;
 }
 
 /* ============================================================================

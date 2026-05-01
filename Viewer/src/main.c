@@ -13,11 +13,22 @@
 #include <errno.h>
 #include "udp_common.h"
 #include "unified_logger.h"
+#include "event_handler.h"
+#include "mgmt_worker.h"
+#include "mgmt_paths.h"
+#include "mgmt_handlers.h"
 
-int main() {
-    pthread_t t_udp, t_ipc, t_sig, t_tcp;
+int main(void) {
+    pthread_t t_ipc, t_sig, t_tcp;
+    pthread_t t_mgmt;
+    int t_mgmt_created = 0;
+    int registry_initialized = 0;
     AppContext ctx;
     sigset_t set;
+    atomic_bool g_mgmt_running;
+    atomic_init(&g_mgmt_running, true);
+    ViewerMgmtCtx mgmt_ctx;
+    MgmtWorkerArg mgmt_arg;
 
     log_init("Viewer");
 
@@ -54,12 +65,34 @@ int main() {
     pthread_create(&t_ipc, NULL, ipc_worker, (void *)&ctx);
     pthread_create(&t_tcp, NULL, tcp_worker, (void *)&ctx);
 
+    /* mgmt: ハンドラ登録 → ワーカースレッド起動 */
+    if (handler_registry_init() == 0) {
+        registry_initialized = 1;
+        mgmt_ctx.start_time   = time(NULL);
+        mgmt_ctx.app_ctx      = &ctx;
+        mgmt_ctx.keep_running = &g_mgmt_running;
+        if (viewer_mgmt_register(&mgmt_ctx) < 0)
+            log_err("[Mgmt] ハンドラ登録に失敗");
+    } else {
+        log_err("[Mgmt] ハンドラレジストリ初期化失敗");
+    }
+    mgmt_arg.socket_path  = MGMT_SOCKET_PATH_VIEWER;
+    mgmt_arg.keep_running = &g_mgmt_running;
+    if (pthread_create(&t_mgmt, NULL, mgmt_worker, &mgmt_arg) == 0) {
+        t_mgmt_created = 1;
+    } else {
+        log_err("[Mgmt] mgmt_worker スレッド作成失敗: %s", strerror(errno));
+    }
+
     // いずれかのルートで終了フラグが立つのを待つ
     pthread_mutex_lock(&ctx.mtx);
     while (ctx.shutdown_requested == 0) {
         pthread_cond_wait(&ctx.cond, &ctx.mtx);
     }
     pthread_mutex_unlock(&ctx.mtx);
+
+    /* mgmt_worker ループを停止（SHUTDOWN ハンドラ経由でない場合） */
+    atomic_store_explicit(&g_mgmt_running, false, memory_order_release);
 
     log_info("[Main] --- 終了通知シーケンス開始 ---");
 
@@ -94,12 +127,19 @@ int main() {
     pthread_join(t_ipc, NULL);
     pthread_join(t_sig, NULL);
     pthread_join(t_tcp, NULL);
+    if (t_mgmt_created) {
+        pthread_join(t_mgmt, NULL);
+        log_info("t_mgmt (Mgmt Worker) 終了");
+    }
 
     // 最終後片付け
     msgctl(ctx.msqid, IPC_RMID, NULL);
     close(ctx.udp_fd);
-    close(ctx.shutdown_pipe[0]); // ★パイプの片付け
-    close(ctx.shutdown_pipe[1]); // ★パイプの片付け
+    close(ctx.shutdown_pipe[0]);
+    close(ctx.shutdown_pipe[1]);
+    if (registry_initialized) {
+        handler_registry_destroy();
+    }
     log_info("[Main] 全てのスレッドを回収。リソースを解放しました。");
 
     log_close();

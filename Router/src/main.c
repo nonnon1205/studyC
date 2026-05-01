@@ -18,6 +18,10 @@
 #include "router_worker.h"
 #include "shared_ipc.h"
 #include "shm_api.h"
+#include "event_handler.h"
+#include "mgmt_worker.h"
+#include "mgmt_paths.h"
+#include "mgmt_handlers.h"
 
 #ifdef ENABLE_FAULT_INJECTION
 static void print_usage(const char* prog) {
@@ -109,9 +113,15 @@ int main(int argc, char *argv[]) {
 
     pthread_t t2, t3;
     int t2_created = 0, t3_created = 0;
+    pthread_t t_mgmt;
+    int t_mgmt_created = 0;
+    int registry_initialized = 0;
     sigset_t set;
     int router_started = 0;
     int ret = EXIT_FAILURE; // Default to failure
+
+    RouterMgmtCtx mgmt_ctx;
+    MgmtWorkerArg mgmt_arg;
 
     log_init("Router");
 
@@ -171,6 +181,25 @@ int main(int argc, char *argv[]) {
     }
     t3_created = 1;
     router_started = 1;
+
+    /* mgmt: ハンドラ登録 → ワーカースレッド起動 */
+    if (handler_registry_init() == 0) {
+        registry_initialized = 1;
+        mgmt_ctx.start_time   = time(NULL);
+        mgmt_ctx.keep_running = &g_keep_running;
+        mgmt_ctx.mainmsqid    = mainmsqid;
+        if (router_mgmt_register(&mgmt_ctx) < 0)
+            log_err("[Mgmt] ハンドラ登録に失敗");
+    } else {
+        log_err("[Mgmt] ハンドラレジストリ初期化失敗");
+    }
+    mgmt_arg.socket_path  = MGMT_SOCKET_PATH_ROUTER;
+    mgmt_arg.keep_running = &g_keep_running;
+    if (pthread_create(&t_mgmt, NULL, mgmt_worker, &mgmt_arg) == 0) {
+        t_mgmt_created = 1;
+    } else {
+        log_err("[Mgmt] mgmt_worker スレッド作成失敗: %s", strerror(errno));
+    }
 
 #ifdef ENABLE_FAULT_INJECTION
     pthread_t t_race;
@@ -239,6 +268,11 @@ int main(int argc, char *argv[]) {
         send_shm_quit(router_ctx.ipc_msqid);
     }
 
+    if (t_mgmt_created) {
+        pthread_join(t_mgmt, NULL);
+        log_info("t_mgmt (Mgmt Worker) 終了");
+    }
+
     ret = EXIT_SUCCESS; // Mark as success before cleanup
 
 #ifdef ENABLE_FAULT_INJECTION
@@ -284,6 +318,9 @@ cleanup_log:
     log_info("[Main] 各スレッドを回収中...");
     if (!fail_leak && leak_buf != NULL) {
         free(leak_buf);
+    }
+    if (registry_initialized) {
+        handler_registry_destroy();
     }
     log_info("[Main] リソース解放完了。正常終了。");
     log_close();
