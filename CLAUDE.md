@@ -9,7 +9,8 @@
 | `Viewer` | TCP受信 → コンソール表示 |
 | `SHM` | 共有メモリ API ライブラリ (`libshm.a`) |
 | `Common` | 共通ライブラリ：統合ロガー等 (`libcommon.a`) |
-| `Mgmt` | 管理インターフェース（統合進行中） |
+| `Mgmt` | 管理基盤ライブラリ：ソケット・ハンドラ登録・プロトコル (`libmgmt.a`) |
+| `MgmtCtl` | 管理 CLI：`mgmtctl` バイナリ（`libmgmt.a` をリンク） |
 
 **旧名称（使用禁止）**: PollIO → Collector, TestMsgRcv → Router, TestUDPKill → Viewer
 
@@ -31,8 +32,8 @@ make -C Router
 make clean
 ```
 
-**依存関係**: `SHM` と `Common` は他モジュールより先にビルドする。
-ライブラリは `lib/` 以下に出力される（`libshm.a`, `libcommon.a`）。
+**依存関係**: ビルド順序は `SHM` → `Common` → `Mgmt` → `Collector` / `Router` / `Viewer` / `MgmtCtl`。
+ライブラリは `lib/` 以下に出力される（`libshm.a`, `libcommon.a`, `libmgmt.a`）。
 
 ## ロギング規約
 
