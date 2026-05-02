@@ -8,26 +8,6 @@
       "-O0",
       "-pthread",
       "-Iinclude",
-      "-D_GNU_SOURCE",
-      "-D_POSIX_C_SOURCE=200809L",
-      "-c",
-      "-o",
-      "obj/event_handler.o",
-      "src/event_handler.c"
-    ],
-    "directory": "/home/nonno/studyC/Mgmt",
-    "file": "/home/nonno/studyC/Mgmt/src/event_handler.c",
-    "output": "/home/nonno/studyC/Mgmt/obj/event_handler.o"
-  },
-  {
-    "arguments": [
-      "/usr/bin/cc",
-      "-Wall",
-      "-Wextra",
-      "-g",
-      "-O0",
-      "-pthread",
-      "-Iinclude",
       "-I../lib/include",
       "-c",
       "-o",
@@ -132,5 +112,24 @@
     "directory": "/home/nonno/studyC/Router",
     "file": "/home/nonno/studyC/Router/src/shm_worker.c",
     "output": "/home/nonno/studyC/Router/obj/shm_worker.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-g",
+      "-O0",
+      "-pthread",
+      "-Iinclude",
+      "-I../lib/include",
+      "-c",
+      "-o",
+      "obj/mgmt_handlers.o",
+      "src/mgmt_handlers.c"
+    ],
+    "directory": "/home/nonno/studyC/Router",
+    "file": "/home/nonno/studyC/Router/src/mgmt_handlers.c",
+    "output": "/home/nonno/studyC/Router/obj/mgmt_handlers.o"
   }
 ]
