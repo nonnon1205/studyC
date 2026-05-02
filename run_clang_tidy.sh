@@ -16,7 +16,7 @@ PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$PROJECT_ROOT" || exit 1
 
 # チェック対象のモジュール
-MODULES=("Common" "SHM" "Mgmt" "Collector" "Router" "Viewer" "MgmtCtl")
+MODULES=("Common" "PosixSHM" "Mgmt" "Collector" "Router" "Viewer" "MgmtCtl")
 
 # compile_commands.json を使うかどうかの判定
 if [ -f "compile_commands.json" ]; then
