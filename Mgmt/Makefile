@@ -2,7 +2,7 @@
 -include ../env.mk
 
 # モジュール固有のコンパイルオプション
-override CFLAGS += -pthread -Iinclude -D_GNU_SOURCE -D_POSIX_C_SOURCE=200809L
+override CFLAGS += -pthread -Iinclude -I../lib/include -D_GNU_SOURCE -D_POSIX_C_SOURCE=200809L
 
 # パス設定
 PREFIX  := $(abspath ..)

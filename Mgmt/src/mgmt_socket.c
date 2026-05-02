@@ -1,5 +1,3 @@
-#define _GNU_SOURCE
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -11,6 +9,7 @@
 #include <signal.h>
 #include <stdatomic.h>
 #include "mgmt_socket.h"
+#include "unified_logger.h"
 
 /* ============================================================================
  * Management Socket State
@@ -46,7 +45,7 @@ MgmtSocketHandle mgmt_socket_create(const char* socket_path)
     /* Create UNIX domain datagram socket */
     ms->socket_fd = socket(AF_UNIX, SOCK_DGRAM, 0);
     if (ms->socket_fd < 0) {
-        perror("mgmt_socket_create: socket");
+        GLOG_ERR("mgmt_socket_create: socket: %s", strerror(errno));
         free(ms);
         return NULL;
     }
@@ -63,7 +62,7 @@ MgmtSocketHandle mgmt_socket_create(const char* socket_path)
     /* Bind socket */
     if (bind(ms->socket_fd, (struct sockaddr*)&ms->sock_addr,
              sizeof(struct sockaddr_un)) < 0) {
-        perror("mgmt_socket_create: bind");
+        GLOG_ERR("mgmt_socket_create: bind: %s", strerror(errno));
         close(ms->socket_fd);
         free(ms);
         return NULL;
@@ -72,7 +71,7 @@ MgmtSocketHandle mgmt_socket_create(const char* socket_path)
     /* Initialize statistics */
     pthread_mutex_init(&ms->stats_lock, NULL);
 
-    printf("[Mgmt] Socket created at %s\n", socket_path);
+    GLOG_INFO("[Mgmt] Socket created at %s", socket_path);
 
     return ms;
 }
@@ -90,7 +89,7 @@ void mgmt_socket_destroy(MgmtSocketHandle handle)
     pthread_mutex_destroy(&handle->stats_lock);
     free(handle);
 
-    printf("[Mgmt] Socket destroyed\n");
+    GLOG_INFO("[Mgmt] Socket destroyed");
 }
 
 int mgmt_socket_get_fd(MgmtSocketHandle handle)
@@ -115,7 +114,7 @@ int mgmt_socket_process_one(MgmtSocketHandle handle, int timeout_ms)
 
         if (setsockopt(handle->socket_fd, SOL_SOCKET, SO_RCVTIMEO, &tv,
                        sizeof(tv)) < 0) {
-            perror("setsockopt");
+            GLOG_ERR("setsockopt: %s", strerror(errno));
             return -1;
         }
     }
@@ -132,7 +131,7 @@ int mgmt_socket_process_one(MgmtSocketHandle handle, int timeout_ms)
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             return -1;  /* Timeout */
         }
-        perror("recvfrom");
+        GLOG_ERR("recvfrom: %s", strerror(errno));
         return -1;
     }
 
@@ -156,7 +155,7 @@ int mgmt_socket_process_one(MgmtSocketHandle handle, int timeout_ms)
     /* Send response back */
     if (sendto(handle->socket_fd, &resp, sizeof(resp), 0,
                (struct sockaddr*)&client_addr, client_len) < 0) {
-        perror("sendto");
+        GLOG_ERR("sendto: %s", strerror(errno));
         return -1;
     }
 
@@ -166,9 +165,9 @@ int mgmt_socket_process_one(MgmtSocketHandle handle, int timeout_ms)
     pthread_mutex_unlock(&handle->stats_lock);
 
     /* Log command */
-    printf("[Mgmt] cmd=%s result=%s\n",
-           mgmt_command_str(req.cmd_type),
-           mgmt_result_str(resp.result_code));
+    GLOG_INFO("[Mgmt] cmd=%s result=%s",
+              mgmt_command_str(req.cmd_type),
+              mgmt_result_str(resp.result_code));
 
     return 0;
 }
@@ -242,9 +241,6 @@ int mgmt_socket_stats_reset(MgmtSocketHandle handle)
 int mgmt_socket_set_backlog(MgmtSocketHandle handle, int depth)
 {
     if (!handle || handle->socket_fd < 0) return -1;
-
-    /* Note: UNIX domain sockets don't support listen() directly for DGRAM
-     * This is a placeholder for future extension */
-
+    (void)depth;
     return 0;
 }
