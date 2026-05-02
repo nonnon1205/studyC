@@ -35,7 +35,7 @@ int send_to_main(int msqid, const InternalMsg* msg) {
     }
     DBG("内部キュー送信: msqid=%d, event=%d", msqid, (int)msg->event);
     if (msgsnd(msqid, msg, sizeof(InternalMsg) - sizeof(long), 0) == -1) {
-        log_err("[Common] msgsnd: %s", strerror(errno));
+        GLOG_ERR("[Common] msgsnd: %s", strerror(errno));
         return -1;
     }
     return 0;

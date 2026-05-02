@@ -89,6 +89,8 @@ void handle_udp_read(int udp_fd, int ipc_msqid, ShmHandle shm_handle) {
             IpcNotifyMessage notify;
             notify.mtype = MSG_TYPE_SHM_NOTIFY;
             notify.shm_status_id = status_id;
+            //GLOG_DEBUG("notify.mtype=%ld, notify.shm_status_id=%d sizeof IpcNotifyMessage=%zu", notify.mtype, notify.shm_status_id, sizeof(IpcNotifyMessage) - sizeof(long));
+            //GLOG_DEBUG("ipc_msqid=%d", ipc_msqid);
 
             if (msgsnd(ipc_msqid, &notify, sizeof(IpcNotifyMessage) - sizeof(long), IPC_NOWAIT) == 0) {
                 GLOG_DEBUG("[MQ] Routerへ通知完了");

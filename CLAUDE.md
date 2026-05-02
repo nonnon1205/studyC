@@ -62,8 +62,27 @@ ULOG_DEBUG_AT(handle, fmt, ...)   // __FILE__/__LINE__/__func__ 自動付与
 
 **禁止**: `LOG_INFO` / `LOG_ERR` 等のマクロ名は `<syslog.h>` の定数と衝突するため定義・使用しない。
 
+### ログの2層構造
+
+| 層 | マクロ | 出力先 | 有効条件 | 用途 |
+|----|--------|--------|---------|------|
+| システム層 | `GLOG_*` | syslog | 常時（レベル閾値以上） | 結合レベルの動作記録・障害通知 |
+| 単体層 | `DBG(...)` | stderr | `-DDEBUG` ビルド時のみ | モジュール内の変数ダンプ・フロー追跡 |
+
+`DBG` は `Common/include/debug_log.h` が提供する。使用するファイルには以下を書く（`#include "unified_logger.h"` より後）。
+
+```c
+#define MODULE_NAME "Worker"   // [DBG][Worker] プレフィックスに使われる
+#include "debug_log.h"
+```
+
+**方針**: `GLOG_*` に置き換えない。`DBG` はモジュール単体の一時的な観察用であり、`GLOG_*` は恒久的なシステムログ。目的が異なるため共存させる。
+
 ### printf を残してよい箇所
-対話型ターミナルUIのプロンプト（`printf("> "); fflush(stdout);`）はそのままでよい。アプリケーションログではないため。
+- 対話型ターミナルUIのプロンプト（`printf("> "); fflush(stdout);`）
+- CLI の usage / unknown option メッセージ（`fprintf(stderr, ...)`）
+
+これらはアプリケーションログではないため `GLOG_*` に変換しない。
 
 ## Doxygen 規約
 
@@ -130,6 +149,5 @@ if (something_init() < 0) {
 ## 積み残し（既知の未対応事項）
 
 - `docs/APISpecification.text` に旧モジュール名が残っている（未更新）
-- Router / Viewer に `GLOG_*` マクロ未適用（`printf`/`perror` のまま）
 - ファイル命名規則の整理（例: `udp_worker.c` → `router_udp_worker.c`）
 - Mgmt 統合済み（Phase 2–5 完了）。GET_METRICS / RESET_METRICS ハンドラは未実装（MetricsHandle の組み込みが必要）
