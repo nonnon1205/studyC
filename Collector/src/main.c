@@ -40,24 +40,33 @@ int main(void) {
         return EXIT_FAILURE;
     }
 
-    /* mgmt: ハンドラレジストリ初期化 → ハンドラ登録 */
+    CollectorMgmtCtx mgmt_ctx = {
+        .start_time   = time(NULL),
+        .keep_running = &g_keep_running
+    };
     if (handler_registry_init() < 0) {
-        GLOG_WARN("[Mgmt] ハンドラレジストリの初期化に失敗");
-    } else {
-        CollectorMgmtCtx mgmt_ctx = {
-            .start_time   = time(NULL),
-            .keep_running = &g_keep_running
-        };
-        if (collector_mgmt_register(&mgmt_ctx) < 0)
-            GLOG_WARN("[Mgmt] ハンドラ登録に失敗");
+        GLOG_FATAL("[Mgmt] ハンドラレジストリの初期化に失敗");
+        shm_api_close(shm_handle);
+        log_close();
+        return EXIT_FAILURE;
     }
-
-    /* mgmt: ソケット作成（失敗しても本体は動作継続） */
+    if (collector_mgmt_register(&mgmt_ctx) < 0) {
+        GLOG_FATAL("[Mgmt] ハンドラ登録に失敗");
+        handler_registry_destroy();
+        shm_api_close(shm_handle);
+        log_close();
+        return EXIT_FAILURE;
+    }
     MgmtSocketHandle mgmt_sock =
         mgmt_socket_create(MGMT_SOCKET_PATH_COLLECTOR);
-    if (!mgmt_sock)
-        GLOG_WARN("[Mgmt] 管理ソケットの作成に失敗: %s",
-                  MGMT_SOCKET_PATH_COLLECTOR);
+    if (!mgmt_sock) {
+        GLOG_FATAL("[Mgmt] 管理ソケットの作成に失敗: %s",
+                   MGMT_SOCKET_PATH_COLLECTOR);
+        handler_registry_destroy();
+        shm_api_close(shm_handle);
+        log_close();
+        return EXIT_FAILURE;
+    }
 
     GLOG_INFO("==========================================");
     GLOG_INFO(" Collector 起動");

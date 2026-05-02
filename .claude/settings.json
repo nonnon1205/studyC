@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(make)"
+      "Bash(make)",
+      "Bash(git -C /home/nonno/studyC log --oneline -10)",
+      "Bash(git -C /home/nonno/studyC diff HEAD --stat)",
+      "Bash(git -C /home/nonno/studyC status)",
+      "Bash(git -C /home/nonno/studyC log origin/main..HEAD --oneline)",
+      "Bash(git -C /home/nonno/studyC diff origin/main..HEAD --stat)"
     ]
   }
 }

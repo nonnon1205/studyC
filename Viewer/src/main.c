@@ -23,6 +23,7 @@ int main(void) {
     pthread_t t_mgmt;
     int t_mgmt_created = 0;
     int registry_initialized = 0;
+    int mgmt_ok = 1;
     AppContext ctx;
     sigset_t set;
     atomic_bool g_mgmt_running;
@@ -65,23 +66,36 @@ int main(void) {
     pthread_create(&t_ipc, NULL, ipc_worker, (void *)&ctx);
     pthread_create(&t_tcp, NULL, tcp_worker, (void *)&ctx);
 
-    /* mgmt: ハンドラ登録 → ワーカースレッド起動 */
-    if (handler_registry_init() == 0) {
+    /* mgmt: ハンドラ登録 → ワーカースレッド起動（失敗時はプロセス終了） */
+    if (handler_registry_init() != 0) {
+        log_err("[Mgmt] ハンドラレジストリ初期化失敗");
+        mgmt_ok = 0;
+    } else {
         registry_initialized = 1;
         mgmt_ctx.start_time   = time(NULL);
         mgmt_ctx.app_ctx      = &ctx;
         mgmt_ctx.keep_running = &g_mgmt_running;
-        if (viewer_mgmt_register(&mgmt_ctx) < 0)
+        if (viewer_mgmt_register(&mgmt_ctx) != 0) {
             log_err("[Mgmt] ハンドラ登録に失敗");
-    } else {
-        log_err("[Mgmt] ハンドラレジストリ初期化失敗");
+            mgmt_ok = 0;
+        }
     }
-    mgmt_arg.socket_path  = MGMT_SOCKET_PATH_VIEWER;
-    mgmt_arg.keep_running = &g_mgmt_running;
-    if (pthread_create(&t_mgmt, NULL, mgmt_worker, &mgmt_arg) == 0) {
-        t_mgmt_created = 1;
-    } else {
-        log_err("[Mgmt] mgmt_worker スレッド作成失敗: %s", strerror(errno));
+    if (mgmt_ok) {
+        mgmt_arg.socket_path  = MGMT_SOCKET_PATH_VIEWER;
+        mgmt_arg.keep_running = &g_mgmt_running;
+        if (pthread_create(&t_mgmt, NULL, mgmt_worker, &mgmt_arg) == 0) {
+            t_mgmt_created = 1;
+        } else {
+            log_err("[Mgmt] mgmt_worker スレッド作成失敗: %s", strerror(errno));
+            mgmt_ok = 0;
+        }
+    }
+    if (!mgmt_ok) {
+        /* t_ipc/t_tcp/t_sig が動いているため cond で終了シーケンスへ乗せる */
+        pthread_mutex_lock(&ctx.mtx);
+        ctx.shutdown_requested = 1;
+        pthread_cond_signal(&ctx.cond);
+        pthread_mutex_unlock(&ctx.mtx);
     }
 
     // いずれかのルートで終了フラグが立つのを待つ
@@ -143,5 +157,5 @@ int main(void) {
     log_info("[Main] 全てのスレッドを回収。リソースを解放しました。");
 
     log_close();
-    return 0;
+    return mgmt_ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }

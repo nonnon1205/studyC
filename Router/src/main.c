@@ -116,6 +116,7 @@ int main(int argc, char *argv[]) {
     pthread_t t_mgmt;
     int t_mgmt_created = 0;
     int registry_initialized = 0;
+    int mgmt_ok = 1;
     sigset_t set;
     int router_started = 0;
     int ret = EXIT_FAILURE; // Default to failure
@@ -182,23 +183,39 @@ int main(int argc, char *argv[]) {
     t3_created = 1;
     router_started = 1;
 
-    /* mgmt: ハンドラ登録 → ワーカースレッド起動 */
-    if (handler_registry_init() == 0) {
+    /* mgmt: ハンドラ登録 → ワーカースレッド起動（失敗時はプロセス終了） */
+    if (handler_registry_init() != 0) {
+        log_err("[Mgmt] ハンドラレジストリ初期化失敗");
+        mgmt_ok = 0;
+    } else {
         registry_initialized = 1;
         mgmt_ctx.start_time   = time(NULL);
         mgmt_ctx.keep_running = &g_keep_running;
         mgmt_ctx.mainmsqid    = mainmsqid;
-        if (router_mgmt_register(&mgmt_ctx) < 0)
+        if (router_mgmt_register(&mgmt_ctx) != 0) {
             log_err("[Mgmt] ハンドラ登録に失敗");
-    } else {
-        log_err("[Mgmt] ハンドラレジストリ初期化失敗");
+            mgmt_ok = 0;
+        }
     }
-    mgmt_arg.socket_path  = MGMT_SOCKET_PATH_ROUTER;
-    mgmt_arg.keep_running = &g_keep_running;
-    if (pthread_create(&t_mgmt, NULL, mgmt_worker, &mgmt_arg) == 0) {
-        t_mgmt_created = 1;
-    } else {
-        log_err("[Mgmt] mgmt_worker スレッド作成失敗: %s", strerror(errno));
+    if (mgmt_ok) {
+        mgmt_arg.socket_path  = MGMT_SOCKET_PATH_ROUTER;
+        mgmt_arg.keep_running = &g_keep_running;
+        if (pthread_create(&t_mgmt, NULL, mgmt_worker, &mgmt_arg) == 0) {
+            t_mgmt_created = 1;
+        } else {
+            log_err("[Mgmt] mgmt_worker スレッド作成失敗: %s", strerror(errno));
+            mgmt_ok = 0;
+        }
+    }
+    if (!mgmt_ok) {
+        /* t2/t3 が動いているため既存の終了フローへ乗せる */
+        atomic_store_explicit(&g_keep_running, false, memory_order_release);
+        send_shm_quit(router_ctx.ipc_msqid);
+        if (g_shutdown_pipe[1] != -1) {
+            close(g_shutdown_pipe[1]);
+            g_shutdown_pipe[1] = -1;
+        }
+        goto skip_to_cleanup;
     }
 
 #ifdef ENABLE_FAULT_INJECTION
@@ -275,6 +292,7 @@ int main(int argc, char *argv[]) {
 
     ret = EXIT_SUCCESS; // Mark as success before cleanup
 
+skip_to_cleanup:
 #ifdef ENABLE_FAULT_INJECTION
 cleanup_t_race:
     if (fail_race && t_race_created) {
