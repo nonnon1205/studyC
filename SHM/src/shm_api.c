@@ -112,7 +112,7 @@ bool shm_api_write(ShmHandle handle, int status, const char* msg) {
     if (!safe_lock(&handle->shm_ptr->mtx)) return false;
 
     handle->shm_ptr->status_code = status;
-    strncpy(handle->shm_ptr->message, msg, 255);
+    snprintf(handle->shm_ptr->message, sizeof(handle->shm_ptr->message), "%s", msg);
     DBG("SHM書込み: status=%d, msg=\"%s\"", status, msg);
 
     pthread_mutex_unlock(&handle->shm_ptr->mtx);
@@ -126,7 +126,7 @@ bool shm_api_read(ShmHandle handle, int* out_status, char* out_msg) {
     if (!safe_lock(&handle->shm_ptr->mtx)) return false;
 
     if (out_status) *out_status = handle->shm_ptr->status_code;
-    if (out_msg) strncpy(out_msg, handle->shm_ptr->message, 255);
+    if (out_msg) snprintf(out_msg, sizeof(handle->shm_ptr->message), "%s", handle->shm_ptr->message);
     DBG("SHM読出し: status=%d, msg=\"%s\"",
         out_status ? *out_status : -1, out_msg ? out_msg : "(null)");
 

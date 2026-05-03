@@ -8,6 +8,211 @@
       "-O0",
       "-pthread",
       "-Iinclude",
+      "-c",
+      "-o",
+      "obj/unified_logger.o",
+      "src/unified_logger.c"
+    ],
+    "directory": "/home/nonno/studyC/Common",
+    "file": "/home/nonno/studyC/Common/src/unified_logger.c",
+    "output": "/home/nonno/studyC/Common/obj/unified_logger.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-g",
+      "-O0",
+      "-pthread",
+      "-Isrc",
+      "-I../lib/include",
+      "-c",
+      "-o",
+      "obj/shm_api.o",
+      "src/shm_api.c"
+    ],
+    "directory": "/home/nonno/studyC/PosixSHM",
+    "file": "/home/nonno/studyC/PosixSHM/src/shm_api.c",
+    "output": "/home/nonno/studyC/PosixSHM/obj/shm_api.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-g",
+      "-O0",
+      "-pthread",
+      "-Iinclude",
+      "-I../lib/include",
+      "-D_GNU_SOURCE",
+      "-D_POSIX_C_SOURCE=200809L",
+      "-c",
+      "-o",
+      "obj/event_handler.o",
+      "src/event_handler.c"
+    ],
+    "directory": "/home/nonno/studyC/Mgmt",
+    "file": "/home/nonno/studyC/Mgmt/src/event_handler.c",
+    "output": "/home/nonno/studyC/Mgmt/obj/event_handler.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-g",
+      "-O0",
+      "-pthread",
+      "-Iinclude",
+      "-I../lib/include",
+      "-D_GNU_SOURCE",
+      "-D_POSIX_C_SOURCE=200809L",
+      "-c",
+      "-o",
+      "obj/metrics_collector.o",
+      "src/metrics_collector.c"
+    ],
+    "directory": "/home/nonno/studyC/Mgmt",
+    "file": "/home/nonno/studyC/Mgmt/src/metrics_collector.c",
+    "output": "/home/nonno/studyC/Mgmt/obj/metrics_collector.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-g",
+      "-O0",
+      "-pthread",
+      "-Iinclude",
+      "-I../lib/include",
+      "-D_GNU_SOURCE",
+      "-D_POSIX_C_SOURCE=200809L",
+      "-c",
+      "-o",
+      "obj/mgmt_protocol.o",
+      "src/mgmt_protocol.c"
+    ],
+    "directory": "/home/nonno/studyC/Mgmt",
+    "file": "/home/nonno/studyC/Mgmt/src/mgmt_protocol.c",
+    "output": "/home/nonno/studyC/Mgmt/obj/mgmt_protocol.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-g",
+      "-O0",
+      "-pthread",
+      "-Iinclude",
+      "-I../lib/include",
+      "-D_GNU_SOURCE",
+      "-D_POSIX_C_SOURCE=200809L",
+      "-c",
+      "-o",
+      "obj/mgmt_socket.o",
+      "src/mgmt_socket.c"
+    ],
+    "directory": "/home/nonno/studyC/Mgmt",
+    "file": "/home/nonno/studyC/Mgmt/src/mgmt_socket.c",
+    "output": "/home/nonno/studyC/Mgmt/obj/mgmt_socket.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-g",
+      "-O0",
+      "-pthread",
+      "-Iinclude",
+      "-I../lib/include",
+      "-D_GNU_SOURCE",
+      "-D_POSIX_C_SOURCE=200809L",
+      "-c",
+      "-o",
+      "obj/mgmt_worker.o",
+      "src/mgmt_worker.c"
+    ],
+    "directory": "/home/nonno/studyC/Mgmt",
+    "file": "/home/nonno/studyC/Mgmt/src/mgmt_worker.c",
+    "output": "/home/nonno/studyC/Mgmt/obj/mgmt_worker.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-g",
+      "-O0",
+      "-std=c11",
+      "-pthread",
+      "-D_POSIX_C_SOURCE=200809L",
+      "-Iinclude",
+      "-I../lib/include",
+      "-c",
+      "-o",
+      "obj/main.o",
+      "src/main.c"
+    ],
+    "directory": "/home/nonno/studyC/Collector",
+    "file": "/home/nonno/studyC/Collector/src/main.c",
+    "output": "/home/nonno/studyC/Collector/obj/main.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-g",
+      "-O0",
+      "-std=c11",
+      "-pthread",
+      "-D_POSIX_C_SOURCE=200809L",
+      "-Iinclude",
+      "-I../lib/include",
+      "-c",
+      "-o",
+      "obj/poll_io.o",
+      "src/poll_io.c"
+    ],
+    "directory": "/home/nonno/studyC/Collector",
+    "file": "/home/nonno/studyC/Collector/src/poll_io.c",
+    "output": "/home/nonno/studyC/Collector/obj/poll_io.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-g",
+      "-O0",
+      "-std=c11",
+      "-pthread",
+      "-D_POSIX_C_SOURCE=200809L",
+      "-Iinclude",
+      "-I../lib/include",
+      "-c",
+      "-o",
+      "obj/mgmt_handlers.o",
+      "src/mgmt_handlers.c"
+    ],
+    "directory": "/home/nonno/studyC/Collector",
+    "file": "/home/nonno/studyC/Collector/src/mgmt_handlers.c",
+    "output": "/home/nonno/studyC/Collector/obj/mgmt_handlers.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-g",
+      "-O0",
+      "-pthread",
+      "-Iinclude",
       "-I../lib/include",
       "-c",
       "-o",
@@ -131,5 +336,165 @@
     "directory": "/home/nonno/studyC/Router",
     "file": "/home/nonno/studyC/Router/src/mgmt_handlers.c",
     "output": "/home/nonno/studyC/Router/obj/mgmt_handlers.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-g",
+      "-O0",
+      "-pthread",
+      "-Iinclude",
+      "-I../lib/include",
+      "-c",
+      "-o",
+      "obj/main.o",
+      "src/main.c"
+    ],
+    "directory": "/home/nonno/studyC/Viewer",
+    "file": "/home/nonno/studyC/Viewer/src/main.c",
+    "output": "/home/nonno/studyC/Viewer/obj/main.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-g",
+      "-O0",
+      "-pthread",
+      "-Iinclude",
+      "-I../lib/include",
+      "-c",
+      "-o",
+      "obj/udp_worker.o",
+      "src/udp_worker.c"
+    ],
+    "directory": "/home/nonno/studyC/Viewer",
+    "file": "/home/nonno/studyC/Viewer/src/udp_worker.c",
+    "output": "/home/nonno/studyC/Viewer/obj/udp_worker.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-g",
+      "-O0",
+      "-pthread",
+      "-Iinclude",
+      "-I../lib/include",
+      "-c",
+      "-o",
+      "obj/ipc_worker.o",
+      "src/ipc_worker.c"
+    ],
+    "directory": "/home/nonno/studyC/Viewer",
+    "file": "/home/nonno/studyC/Viewer/src/ipc_worker.c",
+    "output": "/home/nonno/studyC/Viewer/obj/ipc_worker.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-g",
+      "-O0",
+      "-pthread",
+      "-Iinclude",
+      "-I../lib/include",
+      "-c",
+      "-o",
+      "obj/signal_thread.o",
+      "src/signal_thread.c"
+    ],
+    "directory": "/home/nonno/studyC/Viewer",
+    "file": "/home/nonno/studyC/Viewer/src/signal_thread.c",
+    "output": "/home/nonno/studyC/Viewer/obj/signal_thread.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-g",
+      "-O0",
+      "-pthread",
+      "-Iinclude",
+      "-I../lib/include",
+      "-c",
+      "-o",
+      "obj/tcp_worker.o",
+      "src/tcp_worker.c"
+    ],
+    "directory": "/home/nonno/studyC/Viewer",
+    "file": "/home/nonno/studyC/Viewer/src/tcp_worker.c",
+    "output": "/home/nonno/studyC/Viewer/obj/tcp_worker.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-g",
+      "-O0",
+      "-pthread",
+      "-Iinclude",
+      "-I../lib/include",
+      "-c",
+      "-o",
+      "obj/mgmt_handlers.o",
+      "src/mgmt_handlers.c"
+    ],
+    "directory": "/home/nonno/studyC/Viewer",
+    "file": "/home/nonno/studyC/Viewer/src/mgmt_handlers.c",
+    "output": "/home/nonno/studyC/Viewer/obj/mgmt_handlers.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-g",
+      "-O0",
+      "-std=c11",
+      "-D_POSIX_C_SOURCE=200809L",
+      "-pthread",
+      "-Wall",
+      "-Wextra",
+      "-Iinclude",
+      "-I../lib/include",
+      "-c",
+      "-o",
+      "obj/main.o",
+      "src/main.c"
+    ],
+    "directory": "/home/nonno/studyC/MgmtCtl",
+    "file": "/home/nonno/studyC/MgmtCtl/src/main.c",
+    "output": "/home/nonno/studyC/MgmtCtl/obj/main.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-Wall",
+      "-Wextra",
+      "-g",
+      "-O0",
+      "-std=c11",
+      "-D_POSIX_C_SOURCE=200809L",
+      "-pthread",
+      "-Wall",
+      "-Wextra",
+      "-Iinclude",
+      "-I../lib/include",
+      "-c",
+      "-o",
+      "obj/mgmt_send.o",
+      "src/mgmt_send.c"
+    ],
+    "directory": "/home/nonno/studyC/MgmtCtl",
+    "file": "/home/nonno/studyC/MgmtCtl/src/mgmt_send.c",
+    "output": "/home/nonno/studyC/MgmtCtl/obj/mgmt_send.o"
   }
 ]

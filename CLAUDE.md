@@ -136,18 +136,21 @@ cppcheck --enable=warning,style --std=c11 -ICollector/src -I lib/include Collect
 bash run_clang_tidy.sh
 ```
 
-### AI 生成コードへの注意
+### 禁止関数（Claude は絶対に使わないこと）
 
-AI はトレーニングデータのパターンを再現するため、よくある C のバグをそのまま出力することがある。
-以下は特に確認すること。
+CERT C セキュアコーディング標準 STR 系ルールに基づく。
 
-| パターン | 問題 | 正しい書き方 |
+| 禁止 | 理由 | 代替 |
 |---|---|---|
-| `strncpy(dst, src, N)` | N バイト以上でヌル終端なし | `strncpy(dst, src, sizeof(dst)-1); dst[sizeof(dst)-1] = '\0';` または `snprintf` |
-| バッファサイズのマジックナンバー | 構造体変更時に追従しない | `sizeof(member)` から導出する |
-| `inet_ntoa` | MT-Unsafe | `inet_ntop` を使用 |
+| `strcpy` | バッファオーバーフロー | `snprintf(dst, sizeof(dst), "%s", src)` |
+| `strncpy` | ヌル終端が保証されない | `snprintf(dst, sizeof(dst), "%s", src)` |
+| `sprintf` | バッファオーバーフロー | `snprintf` |
+| `gets` | バッファオーバーフロー | `fgets` |
+| `atoi` / `atol` | 変換エラーを報告しない | `strtol` + `*endptr` チェック |
+| `inet_ntoa` | MT-Unsafe | `inet_ntop` |
+| `strtok` | MT-Unsafe（内部状態を持つ） | `strtok_r` |
 
-cppcheck が拾えない問題（マジックナンバー等）は clang-tidy の `bugprone-*` で補完する。
+バッファサイズは必ず `sizeof(dst)` から導出し、マジックナンバーを使わない。
 
 ## コーディング規約
 
