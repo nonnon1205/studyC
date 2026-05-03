@@ -12,3 +12,8 @@ INSTALL    ?= install
 DEBUG      ?= -g
 OPT        ?= -O0
 CFLAGS     ?= -Wall -Wextra $(DEBUG) $(OPT)
+
+# --- SHM Implementation ---
+# sysv: System V 共有メモリ (SHM/)
+# posix: POSIX 共有メモリ (PosixSHM/)
+SHM_IMPL   ?= sysv

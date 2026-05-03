@@ -7,19 +7,29 @@ endif
 # その上で環境変数を読み込む
 include env.mk
 
-SUBDIRS = Common PosixSHM Mgmt Collector Router Viewer MgmtCtl
+# SHM_IMPL=sysv (default) または SHM_IMPL=posix でビルド時に切り替える
+SHM_IMPL ?= sysv
+
+ifeq ($(SHM_IMPL),posix)
+SHM_MODULE = PosixSHM
+else
+SHM_MODULE = SHM
+endif
+
+SUBDIRS      = Common $(SHM_MODULE) Mgmt Collector Router Viewer MgmtCtl
+CLEAN_DIRS   = Common SHM PosixSHM Mgmt Collector Router Viewer MgmtCtl
 
 .PHONY: all debug clean $(SUBDIRS)
 
 all: $(SUBDIRS)
 
 debug:
-	$(MAKE) IFDEF="-DDEBUG" all
+	$(MAKE) SHM_IMPL=$(SHM_IMPL) IFDEF="-DDEBUG" all
 
 $(SUBDIRS):
 	$(MAKE) -C $@ IFDEF=$(IFDEF)
 
 clean:
-	@for dir in $(SUBDIRS); do \
+	@for dir in $(CLEAN_DIRS); do \
 		$(MAKE) -C $$dir clean; \
 	done

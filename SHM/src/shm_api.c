@@ -22,6 +22,7 @@
 struct ShmContext {
     int         shmid;
     SharedData* shm_ptr;
+    bool        is_creator;
 };
 
 // --- ヘルパー：安全なロック処理（ロバスト回復付き） ---
@@ -100,6 +101,7 @@ ShmHandle shm_api_init(void) {
         usleep(10000); 
     }
 
+    ctx->is_creator = is_creator;
     return ctx;
 }
 
@@ -143,11 +145,11 @@ void shm_api_close(ShmHandle handle) {
 // --- API: 完全破棄（システム全体の終了時） ---
 void shm_api_destroy(ShmHandle handle) {
     if (handle) {
-        // メモリ空間からの切り離し
         shmdt(handle->shm_ptr);
-        // OSから共有メモリそのものを削除
-        shmctl(handle->shmid, IPC_RMID, NULL);
+        if (handle->is_creator) {
+            shmctl(handle->shmid, IPC_RMID, NULL);
+            syslog(LOG_INFO, "[SHM] 共有メモリをシステムから破棄しました。");
+        }
         free(handle);
-        syslog(LOG_INFO, "[SHM] 共有メモリをシステムから破棄しました。");
     }
 }

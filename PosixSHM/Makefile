@@ -2,7 +2,7 @@
 -include ../env.mk
 
 # モジュール固有のコンパイルオプション
-override CFLAGS += -pthread -Iinclude -I../lib/include $(IFDEF)
+override CFLAGS += -pthread -Isrc -I../lib/include $(IFDEF)
 
 # パス設定
 PREFIX  := $(abspath ..)
