@@ -110,7 +110,7 @@ int mgmt_socket_process_one(MgmtSocketHandle handle, int timeout_ms)
     struct timeval tv = {0};
     if (timeout_ms > 0) {
         tv.tv_sec = timeout_ms / 1000;
-        tv.tv_usec = (timeout_ms % 1000) * 1000;
+        tv.tv_usec = (long)(timeout_ms % 1000) * 1000;
 
         if (setsockopt(handle->socket_fd, SOL_SOCKET, SO_RCVTIMEO, &tv,
                        sizeof(tv)) < 0) {
@@ -124,8 +124,8 @@ int mgmt_socket_process_one(MgmtSocketHandle handle, int timeout_ms)
     struct sockaddr_un client_addr;
     socklen_t client_len = sizeof(struct sockaddr_un);
 
-    int bytes_rcvd = recvfrom(handle->socket_fd, &req, sizeof(req), 0,
-                              (struct sockaddr*)&client_addr, &client_len);
+    ssize_t bytes_rcvd = recvfrom(handle->socket_fd, &req, sizeof(req), 0,
+                                  (struct sockaddr*)&client_addr, &client_len);
 
     if (bytes_rcvd < 0) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {

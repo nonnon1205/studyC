@@ -36,10 +36,10 @@ void* udp_worker(void* arg) {
     printf("[UDP] 待機中...\n");
     while (1) {
         len = sizeof(cliaddr);
-        int n = recvfrom(ctx->udp_fd, buffer, sizeof(buffer)-1, 0, (struct sockaddr *)&cliaddr, &len);
+        ssize_t n = recvfrom(ctx->udp_fd, buffer, sizeof(buffer)-1, 0, (struct sockaddr *)&cliaddr, &len);
         if (n < 0) break;
         buffer[n] = '\0';
-        DBG("UDP受信: %d bytes, data=\"%s\"", n, buffer);
+        DBG("UDP受信: %zd bytes, data=\"%s\"", n, buffer);
 
         // パターンA: 外部からの終了「要求」
         if (strncmp(buffer, "QUIT", 4) == 0) {

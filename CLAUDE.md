@@ -124,6 +124,31 @@ typedef struct {
 - ファイルスコープのみで使う型・定数
 - 既存ファイルへの追記（既存コードはそのまま）
 
+## 静的解析
+
+**Claude はコードを変更してビルドが成功したら、必ず以下を実行してからタスク完了を報告すること。**
+
+```bash
+# 変更したモジュールに対して実行（例: Collector を変更した場合）
+cppcheck --enable=warning,style --std=c11 -ICollector/src -I lib/include Collector/src/
+
+# 全モジュール一括
+bash run_clang_tidy.sh
+```
+
+### AI 生成コードへの注意
+
+AI はトレーニングデータのパターンを再現するため、よくある C のバグをそのまま出力することがある。
+以下は特に確認すること。
+
+| パターン | 問題 | 正しい書き方 |
+|---|---|---|
+| `strncpy(dst, src, N)` | N バイト以上でヌル終端なし | `strncpy(dst, src, sizeof(dst)-1); dst[sizeof(dst)-1] = '\0';` または `snprintf` |
+| バッファサイズのマジックナンバー | 構造体変更時に追従しない | `sizeof(member)` から導出する |
+| `inet_ntoa` | MT-Unsafe | `inet_ntop` を使用 |
+
+cppcheck が拾えない問題（マジックナンバー等）は clang-tidy の `bugprone-*` で補完する。
+
 ## コーディング規約
 
 - **スレッドセーフ**: `inet_ntoa` は MT-Unsafe なので `inet_ntop` を使用すること

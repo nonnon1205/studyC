@@ -83,15 +83,15 @@ void* tcp_worker(void* arg) {
                 }
             } else {
                 char buffer[2048];
-                int bytes_read = recv(client_sock, buffer, sizeof(buffer) - 1, 0);
+                ssize_t bytes_read = recv(client_sock, buffer, sizeof(buffer) - 1, 0);
                 if (bytes_read > 0) {
                     buffer[bytes_read] = '\0';
-                    DBG("TCP受信: %d bytes", bytes_read);
+                    DBG("TCP受信: %zd bytes", bytes_read);
                     printf("----------------------------------------\n");
                     printf("📥 【TCP受信データ】\n%s", buffer);
                     printf("----------------------------------------\n\n");
                 } else {
-                    DBG("TCP切断検知: recv=%d", bytes_read);
+                    DBG("TCP切断検知: recv=%zd", bytes_read);
                     printf("[TCP View] 🔴 TestMsgRcv が切断しました。\n");
                     close(client_sock);
                     client_sock = -1;

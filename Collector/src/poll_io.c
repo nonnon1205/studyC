@@ -74,7 +74,7 @@ void handle_udp_read(int udp_fd, int ipc_msqid, ShmHandle shm_handle) {
     struct sockaddr_in cliaddr;
     socklen_t len = sizeof(cliaddr);
 
-    int n = recvfrom(udp_fd, buffer, sizeof(buffer)-1, 0, (struct sockaddr *)&cliaddr, &len);
+    ssize_t n = recvfrom(udp_fd, buffer, sizeof(buffer)-1, 0, (struct sockaddr *)&cliaddr, &len);
     if (n > 0) {
         buffer[n] = '\0';
         char src_ip[INET_ADDRSTRLEN];

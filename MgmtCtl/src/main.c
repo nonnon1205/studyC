@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 #include "mgmt_protocol.h"
 #include "mgmt_paths.h"
 #include "mgmt_send.h"
@@ -124,11 +125,13 @@ int main(int argc, char* argv[])
             fprintf(stderr, "bufsize requires a size argument\n");
             return 1;
         }
-        int size = atoi(argv[3]);
-        if (size <= 0) {
+        char* endptr;
+        long size_l = strtol(argv[3], &endptr, 10);
+        if (*endptr != '\0' || size_l <= 0 || size_l > INT_MAX) {
             fprintf(stderr, "Invalid buffer size: %s\n", argv[3]);
             return 1;
         }
+        int size = (int)size_l;
         memcpy(payload, &size, sizeof(int));
         payload_len = sizeof(int);
     }

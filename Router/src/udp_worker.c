@@ -62,7 +62,7 @@ void* udp_worker(void* arg) {
             break;
         }
         if (FD_ISSET(fd, &readfds)) {
-            int n = recvfrom(fd, buf, sizeof(buf) - 1, 0, NULL, NULL);
+            ssize_t n = recvfrom(fd, buf, sizeof(buf) - 1, 0, NULL, NULL);
             if (n < 0) {
                 if (errno == EINTR) continue;
                 GLOG_ERR("[UDP] recvfrom: %s", strerror(errno));
@@ -71,7 +71,7 @@ void* udp_worker(void* arg) {
             if (n == 0) continue;
 
             buf[n] = '\0';
-            DBG("UDP受信: %d bytes, data=\"%s\"", n, buf);
+            DBG("UDP受信: %zd bytes, data=\"%s\"", n, buf);
             if (strcmp(buf, UDP_QUIT_CMD) == 0) {
                 GLOG_INFO("[UDP] 外部 QUIT を受信しました。終了処理はシグナルを待ちます。");
                 continue;

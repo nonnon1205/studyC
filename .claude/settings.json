@@ -7,7 +7,11 @@
       "Bash(git -C /home/nonno/studyC status)",
       "Bash(git -C /home/nonno/studyC log origin/main..HEAD --oneline)",
       "Bash(git -C /home/nonno/studyC diff origin/main..HEAD --stat)",
-      "Bash(make -C Common)"
+      "Bash(make -C Common)",
+      "Bash(cppcheck --enable=warning,style --std=c11 -IPosixSHM/src -IPosixSHM/include -I lib/include PosixSHM/src/)",
+      "Bash(cppcheck --enable=warning,style --std=c11 -IPosixSHM/src -IPosixSHM/include PosixSHM/src/shm_api.c)",
+      "Bash(cppcheck --enable=warning,style --std=c11 -ISHMsrc -ISHM/include -IPosixSHM/src -IPosixSHM/include -ICommon/src -ICommon/include -IMgmt/src -IMgmt/include -ICollector/src -IRouter/src -IViewer/src -IMgmtCtl/src -Ilib/include SHM/src/ PosixSHM/src/ Common/src/ Mgmt/src/ Collector/src/ Router/src/ Viewer/src/ MgmtCtl/src/)",
+      "Bash(cppcheck --enable=warning,style --std=c11 -ICollector/src -IMgmt/src -IMgmt/include -IRouter/src -IViewer/src -IMgmtCtl/src -Ilib/include Collector/src/poll_io.c Mgmt/src/mgmt_socket.c Router/src/udp_worker.c Viewer/src/tcp_worker.c Viewer/src/udp_worker.c MgmtCtl/src/main.c)"
     ]
   }
 }
