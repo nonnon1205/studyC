@@ -33,7 +33,7 @@ void* router_worker(void* arg) {
     inet_pton(AF_INET, "127.0.0.1", &dest_addr.sin_addr);
 
     if (tcp_sock < 0) {
-        GLOG_ERR("[Router] socket: %s", strerror(errno));
+        GLOG_ERR("[Router] socket: %s", safe_strerror(errno));
         send_fatal_event(ctx->main_msqid, "router_worker: socket open failure");
         return NULL;
     }
@@ -45,7 +45,7 @@ void* router_worker(void* arg) {
             tcp_connected = 1;
             break;
         }
-        GLOG_WARN("[Router] TCP接続試行 #%d 失敗: %s. %d秒後にリトライします...", i + 1, strerror(errno), CONNECT_RETRY_DELAY_S);
+        GLOG_WARN("[Router] TCP接続試行 #%d 失敗: %s. %d秒後にリトライします...", i + 1, safe_strerror(errno), CONNECT_RETRY_DELAY_S);
 
         int stop_fd = g_shutdown_pipe[0];
         fd_set readfds;
@@ -96,7 +96,7 @@ void* router_worker(void* arg) {
                         DBG("TCP送信完了: %zu bytes", strlen(tcp_buf));
                         GLOG_INFO("  -> [Router] TCPでViewerへ転送完了");
                     } else {
-                        GLOG_ERR("  -> [Router] TCP送信エラー: %s", strerror(errno));
+                        GLOG_ERR("  -> [Router] TCP送信エラー: %s", safe_strerror(errno));
                     }
                 }
             } else {

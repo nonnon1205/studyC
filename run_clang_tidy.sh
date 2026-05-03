@@ -38,31 +38,27 @@ else
     CFLAGS="-std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra"
 fi
 
-# 適用するチェックルール (C言語向けに有用なものを中心に設定)
-# ※ プロジェクトの要件に合わせて適宜変更してください
-CHECKS="bugprone-*,cert-*,clang-analyzer-*,performance-*,portability-*,readability-*,-readability-identifier-length,-readability-magic-numbers,-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,-bugprone-reserved-identifier,-cert-err33-c,-readability-braces-around-statements,-cert-dcl37-c,-cert-dcl51-cpp,-bugprone-easily-swappable-parameters,-readability-function-cognitive-complexity,-readability-isolate-declaration,-readability-else-after-return"
-
+# チェック内容は .clang-tidy で管理する
 echo "Starting clang-tidy checks..."
 
 for mod in "${MODULES[@]}"; do
     if [ ! -d "$mod/src" ]; then
         continue
     fi
-    
+
     echo ""
     echo "========================================"
     echo " Checking module: $mod"
     echo "========================================"
-    
-    # .c ファイルを取得してループ処理
+
     while IFS= read -r -d '' file; do
         echo "-> $file"
-        
+
         if [ "$USE_COMPDB" -eq 1 ]; then
-            clang-tidy -p . -checks="$CHECKS" "$file"
+            clang-tidy -p . "$file"
         else
-            clang-tidy -checks="$CHECKS" "$file" -- $CFLAGS $INCLUDES
+            clang-tidy "$file" -- $CFLAGS $INCLUDES
         fi
-        
+
     done < <(find "$mod/src" -name "*.c" -print0)
 done

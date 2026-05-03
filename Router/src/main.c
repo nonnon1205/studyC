@@ -43,7 +43,7 @@ static void send_shm_quit(int msqid) {
     notify.mtype = MSG_TYPE_SHM_NOTIFY;
     notify.shm_status_id = MSG_TYPE_SHM_QUIT;
     if (msgsnd(msqid, &notify, sizeof(IpcNotifyMessage) - sizeof(long), 0) == -1) {
-        GLOG_ERR("msgsnd (SHM_QUIT): %s", strerror(errno));
+        GLOG_ERR("msgsnd (SHM_QUIT): %s", safe_strerror(errno));
     }
 }
 
@@ -128,13 +128,13 @@ int main(int argc, char *argv[]) {
 
     int mainmsqid = msgget(IPC_PRIVATE, 0666 | IPC_CREAT);
     if (mainmsqid == -1) {
-        GLOG_ERR("msgget: %s", strerror(errno));
+        GLOG_ERR("msgget: %s", safe_strerror(errno));
         goto cleanup_log;
     }
 
     int msqid = msgget(MSG_KEY, 0666 | IPC_CREAT);
     if (msqid == -1) {
-        GLOG_ERR("msgget: %s", strerror(errno));
+        GLOG_ERR("msgget: %s", safe_strerror(errno));
         goto cleanup_main_msq;
     }
 
@@ -147,12 +147,12 @@ int main(int argc, char *argv[]) {
     }
 
     if (pipe(g_shutdown_pipe) != 0) {
-        GLOG_ERR("pipe: %s", strerror(errno));
+        GLOG_ERR("pipe: %s", safe_strerror(errno));
         goto cleanup_shm;
     }
 
     if (sem_init(&g_signal_worker_ready, 0, 0) != 0) {
-        GLOG_ERR("sem_init: %s", strerror(errno));
+        GLOG_ERR("sem_init: %s", safe_strerror(errno));
         goto cleanup_pipe;
     }
     g_sem_initialized = 1;
@@ -161,23 +161,23 @@ int main(int argc, char *argv[]) {
     sigaddset(&set, SIGINT);
     sigaddset(&set, SIGTERM);
     if (pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) {
-        GLOG_ERR("pthread_sigmask: %s", strerror(errno));
+        GLOG_ERR("pthread_sigmask: %s", safe_strerror(errno));
         goto cleanup_sem;
     }
 
     if (pthread_create(&t2, NULL, signal_worker, &mainmsqid) != 0) {
-        GLOG_ERR("pthread_create signal_worker: %s", strerror(errno));
+        GLOG_ERR("pthread_create signal_worker: %s", safe_strerror(errno));
         goto cleanup_sem;
     }
     t2_created = 1;
 
     if (sem_wait(&g_signal_worker_ready) != 0) {
-        GLOG_ERR("sem_wait: %s", strerror(errno));
+        GLOG_ERR("sem_wait: %s", safe_strerror(errno));
         goto cleanup_t2;
     }
 
     if (pthread_create(&t3, NULL, router_worker, &router_ctx) != 0) {
-        GLOG_ERR("pthread_create router_worker: %s", strerror(errno));
+        GLOG_ERR("pthread_create router_worker: %s", safe_strerror(errno));
         goto cleanup_t2;
     }
     t3_created = 1;
@@ -203,7 +203,7 @@ int main(int argc, char *argv[]) {
         if (pthread_create(&t_mgmt, NULL, mgmt_worker, &mgmt_arg) == 0) {
             t_mgmt_created = 1;
         } else {
-            GLOG_ERR("[Mgmt] mgmt_worker スレッド作成失敗: %s", strerror(errno));
+            GLOG_ERR("[Mgmt] mgmt_worker スレッド作成失敗: %s", safe_strerror(errno));
             mgmt_ok = 0;
         }
     }
@@ -223,7 +223,7 @@ int main(int argc, char *argv[]) {
     int t_race_created = 0;
     if (fail_race) {
         if (pthread_create(&t_race, NULL, race_worker, NULL) != 0) {
-            GLOG_ERR("pthread_create race_worker: %s", strerror(errno));
+            GLOG_ERR("pthread_create race_worker: %s", safe_strerror(errno));
             goto cleanup_t3;
         }
         t_race_created = 1;
@@ -238,7 +238,7 @@ int main(int argc, char *argv[]) {
         // ここで全イベントを一本化して待機（CPU負荷 0）
         if (msgrcv(mainmsqid, &rx_msg, sizeof(InternalMsg) - sizeof(long), 0, 0) == -1) {
             if (errno == EINTR) continue;
-            GLOG_ERR("msgrcv: %s", strerror(errno));
+            GLOG_ERR("msgrcv: %s", safe_strerror(errno));
             break;
         }
 
@@ -310,7 +310,7 @@ cleanup_t2:
     if (t2_created) {
         int cancel_ret = pthread_cancel(t2);
         if (cancel_ret != 0 && cancel_ret != ESRCH) {
-            GLOG_ERR("pthread_cancel(signal_worker): %s", strerror(cancel_ret));
+            GLOG_ERR("pthread_cancel(signal_worker): %s", safe_strerror(cancel_ret));
         }
         pthread_join(t2, NULL);
         GLOG_INFO("t2 (Signal Worker) 終了");
@@ -329,9 +329,9 @@ cleanup_shm:
     shm_api_close(router_ctx.shm_handle);
 
 cleanup_msq:
-    if (msgctl(msqid, IPC_RMID, NULL) == -1) GLOG_ERR("msgctl(IPC_RMID): %s", strerror(errno));
+    if (msgctl(msqid, IPC_RMID, NULL) == -1) GLOG_ERR("msgctl(IPC_RMID): %s", safe_strerror(errno));
 cleanup_main_msq:
-    if (msgctl(mainmsqid, IPC_RMID, NULL) == -1) GLOG_ERR("msgctl(IPC_RMID): %s", strerror(errno));
+    if (msgctl(mainmsqid, IPC_RMID, NULL) == -1) GLOG_ERR("msgctl(IPC_RMID): %s", safe_strerror(errno));
 cleanup_log:
     GLOG_INFO("[Main] 各スレッドを回収中...");
     if (!fail_leak && leak_buf != NULL) {

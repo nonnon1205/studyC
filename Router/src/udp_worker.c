@@ -19,7 +19,7 @@ void* udp_worker(void* arg) {
     int msqid = *(int*)arg;
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd == -1) {
-        GLOG_ERR("[UDP] socket: %s", strerror(errno));
+        GLOG_ERR("[UDP] socket: %s", safe_strerror(errno));
         return NULL;
     }
 
@@ -29,7 +29,7 @@ void* udp_worker(void* arg) {
     addr.sin_addr.s_addr = INADDR_ANY;
 
     if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) != 0) {
-        GLOG_ERR("[UDP] bind: %s", strerror(errno));
+        GLOG_ERR("[UDP] bind: %s", safe_strerror(errno));
         close(fd);
         return NULL;
     }
@@ -54,7 +54,7 @@ void* udp_worker(void* arg) {
         int ready = select(nfds, &readfds, NULL, NULL, NULL);
         if (ready < 0) {
             if (errno == EINTR) continue;
-            GLOG_ERR("[UDP] select: %s", strerror(errno));
+            GLOG_ERR("[UDP] select: %s", safe_strerror(errno));
             break;
         }
         if (FD_ISSET(stop_fd, &readfds)) {
@@ -65,7 +65,7 @@ void* udp_worker(void* arg) {
             ssize_t n = recvfrom(fd, buf, sizeof(buf) - 1, 0, NULL, NULL);
             if (n < 0) {
                 if (errno == EINTR) continue;
-                GLOG_ERR("[UDP] recvfrom: %s", strerror(errno));
+                GLOG_ERR("[UDP] recvfrom: %s", safe_strerror(errno));
                 break;
             }
             if (n == 0) continue;

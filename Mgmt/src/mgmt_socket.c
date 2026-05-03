@@ -45,7 +45,7 @@ MgmtSocketHandle mgmt_socket_create(const char* socket_path)
     /* Create UNIX domain datagram socket */
     ms->socket_fd = socket(AF_UNIX, SOCK_DGRAM, 0);
     if (ms->socket_fd < 0) {
-        GLOG_ERR("mgmt_socket_create: socket: %s", strerror(errno));
+        GLOG_ERR("mgmt_socket_create: socket: %s", safe_strerror(errno));
         free(ms);
         return NULL;
     }
@@ -62,7 +62,7 @@ MgmtSocketHandle mgmt_socket_create(const char* socket_path)
     /* Bind socket */
     if (bind(ms->socket_fd, (struct sockaddr*)&ms->sock_addr,
              sizeof(struct sockaddr_un)) < 0) {
-        GLOG_ERR("mgmt_socket_create: bind: %s", strerror(errno));
+        GLOG_ERR("mgmt_socket_create: bind: %s", safe_strerror(errno));
         close(ms->socket_fd);
         free(ms);
         return NULL;
@@ -114,7 +114,7 @@ int mgmt_socket_process_one(MgmtSocketHandle handle, int timeout_ms)
 
         if (setsockopt(handle->socket_fd, SOL_SOCKET, SO_RCVTIMEO, &tv,
                        sizeof(tv)) < 0) {
-            GLOG_ERR("setsockopt: %s", strerror(errno));
+            GLOG_ERR("setsockopt: %s", safe_strerror(errno));
             return -1;
         }
     }
@@ -131,7 +131,7 @@ int mgmt_socket_process_one(MgmtSocketHandle handle, int timeout_ms)
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             return -1;  /* Timeout */
         }
-        GLOG_ERR("recvfrom: %s", strerror(errno));
+        GLOG_ERR("recvfrom: %s", safe_strerror(errno));
         return -1;
     }
 
@@ -155,7 +155,7 @@ int mgmt_socket_process_one(MgmtSocketHandle handle, int timeout_ms)
     /* Send response back */
     if (sendto(handle->socket_fd, &resp, sizeof(resp), 0,
                (struct sockaddr*)&client_addr, client_len) < 0) {
-        GLOG_ERR("sendto: %s", strerror(errno));
+        GLOG_ERR("sendto: %s", safe_strerror(errno));
         return -1;
     }
 

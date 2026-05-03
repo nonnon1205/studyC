@@ -19,7 +19,7 @@ extern volatile sig_atomic_t g_keep_running;
 int setup_udp_socket(uint16_t port) {
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0) {
-        GLOG_ERR("[Setup] UDPソケット作成失敗: %s", strerror(errno));
+        GLOG_ERR("[Setup] UDPソケット作成失敗: %s", safe_strerror(errno));
         return -1;
     }
     struct sockaddr_in addr = {0};
@@ -28,7 +28,7 @@ int setup_udp_socket(uint16_t port) {
     addr.sin_port = htons(port);
 
     if (bind(fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-        GLOG_ERR("[Setup] UDPポート(%d) バインド失敗: %s", port, strerror(errno));
+        GLOG_ERR("[Setup] UDPポート(%d) バインド失敗: %s", port, safe_strerror(errno));
         close(fd);
         return -1;
     }
@@ -95,7 +95,7 @@ void handle_udp_read(int udp_fd, int ipc_msqid, ShmHandle shm_handle) {
             if (msgsnd(ipc_msqid, &notify, sizeof(IpcNotifyMessage) - sizeof(long), IPC_NOWAIT) == 0) {
                 GLOG_DEBUG("[MQ] Routerへ通知完了");
             } else {
-                GLOG_ERR("[MQ] 通知失敗: %s", strerror(errno));
+                GLOG_ERR("[MQ] 通知失敗: %s", safe_strerror(errno));
             }
         } else {
             GLOG_WARN("[SHM] 書き込み失敗 (Mutexロック等による)");
@@ -129,7 +129,7 @@ void run_event_loop(int udp_fd, int ipc_msqid, ShmHandle shm_handle,
 
         if (ret < 0) {
             if (errno == EINTR) break;
-            GLOG_ERR("[Collector] poll error: %s", strerror(errno));
+            GLOG_ERR("[Collector] poll error: %s", safe_strerror(errno));
             break;
         }
 

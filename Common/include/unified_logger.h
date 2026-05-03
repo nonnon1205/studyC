@@ -2,7 +2,25 @@
 #define UNIFIED_LOGGER_H
 
 #include <stdint.h>
+#include <string.h>
+#include <stdio.h>
 #include <time.h>
+
+#ifndef SAFE_STRERROR_DEFINED
+#define SAFE_STRERROR_DEFINED
+static inline const char* safe_strerror(int errnum) {
+    static _Thread_local char errbuf[64];
+#if defined(_GNU_SOURCE)
+    const char* p = strerror_r(errnum, errbuf, sizeof(errbuf));
+    if (p != errbuf)
+        snprintf(errbuf, sizeof(errbuf), "%s", p);
+#else
+    if (strerror_r(errnum, errbuf, sizeof(errbuf)) != 0)
+        snprintf(errbuf, sizeof(errbuf), "error %d", errnum);
+#endif
+    return errbuf;
+}
+#endif
 
 /* ============================================================================
  * Unified Logging Module

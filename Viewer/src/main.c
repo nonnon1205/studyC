@@ -47,7 +47,7 @@ int main(void) {
 
     // ★追加: TCPスレッドを叩き起こす用のパイプを作成
     if (pipe(ctx.shutdown_pipe) < 0) {
-        log_err("pipe: %s", strerror(errno));
+        log_err("pipe: %s", safe_strerror(errno));
         log_close();
         return EXIT_FAILURE;
     }
@@ -86,7 +86,7 @@ int main(void) {
         if (pthread_create(&t_mgmt, NULL, mgmt_worker, &mgmt_arg) == 0) {
             t_mgmt_created = 1;
         } else {
-            log_err("[Mgmt] mgmt_worker スレッド作成失敗: %s", strerror(errno));
+            log_err("[Mgmt] mgmt_worker スレッド作成失敗: %s", safe_strerror(errno));
             mgmt_ok = 0;
         }
     }
@@ -131,7 +131,7 @@ int main(void) {
     // ★追加: 4. TCPスレッド(View)をパイプで叩き起こす
     char dummy = 'X';
     if (write(ctx.shutdown_pipe[1], &dummy, 1) < 0) {
-        log_err("write to shutdown_pipe: %s", strerror(errno));
+        log_err("write to shutdown_pipe: %s", safe_strerror(errno));
     }
     
     // 各スレッドの合流を待つ

@@ -46,7 +46,7 @@ static bool safe_lock(pthread_mutex_t *mtx) {
     }
 #endif
 
-    syslog(LOG_ERR, "[SHM] Mutexロック失敗: %s", strerror(ret));
+    syslog(LOG_ERR, "[SHM] Mutexロック失敗: %s", safe_strerror(ret));
     return false;
 }
 

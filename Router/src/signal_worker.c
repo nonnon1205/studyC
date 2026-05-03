@@ -28,7 +28,7 @@ void* signal_worker(void* arg) {
     sigaddset(&set, SIGTERM);
 
     if (pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) {
-        GLOG_ERR("[Signal] pthread_sigmask: %s", strerror(errno));
+        GLOG_ERR("[Signal] pthread_sigmask: %s", safe_strerror(errno));
         return NULL;
     }
 
@@ -37,7 +37,7 @@ void* signal_worker(void* arg) {
     while (atomic_load_explicit(&g_keep_running, memory_order_acquire)) {
         int ret = sigwait(&set, &sig);
         if (ret != 0) {
-            GLOG_ERR("[Signal] sigwait: %s", strerror(ret));
+            GLOG_ERR("[Signal] sigwait: %s", safe_strerror(ret));
             break;
         }
         DBG("シグナル受信: sig=%d", sig);

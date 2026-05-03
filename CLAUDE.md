@@ -132,25 +132,9 @@ typedef struct {
 # 変更したモジュールに対して実行（例: Collector を変更した場合）
 cppcheck --enable=warning,style --std=c11 -ICollector/src -I lib/include Collector/src/
 
-# 全モジュール一括
+# 全モジュール一括（チェック内容は .clang-tidy で管理）
 bash run_clang_tidy.sh
 ```
-
-### 禁止関数（Claude は絶対に使わないこと）
-
-CERT C セキュアコーディング標準 STR 系ルールに基づく。
-
-| 禁止 | 理由 | 代替 |
-|---|---|---|
-| `strcpy` | バッファオーバーフロー | `snprintf(dst, sizeof(dst), "%s", src)` |
-| `strncpy` | ヌル終端が保証されない | `snprintf(dst, sizeof(dst), "%s", src)` |
-| `sprintf` | バッファオーバーフロー | `snprintf` |
-| `gets` | バッファオーバーフロー | `fgets` |
-| `atoi` / `atol` | 変換エラーを報告しない | `strtol` + `*endptr` チェック |
-| `inet_ntoa` | MT-Unsafe | `inet_ntop` |
-| `strtok` | MT-Unsafe（内部状態を持つ） | `strtok_r` |
-
-バッファサイズは必ず `sizeof(dst)` から導出し、マジックナンバーを使わない。
 
 ## コーディング規約
 
