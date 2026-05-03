@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include <errno.h>
 #include <unistd.h>
 #include <pthread.h>
@@ -112,7 +113,9 @@ ShmHandle shm_api_init(void) {
 
 // --- API: 書き込み ---
 bool shm_api_write(ShmHandle handle, int status, const char* msg) {
+    assert(msg != NULL && "msg must not be NULL");
     if (!handle || !handle->shm_ptr) return false;
+    if (!msg) return false;
     if (!safe_lock(&handle->shm_ptr->mtx)) return false;
 
     handle->shm_ptr->status_code = status;
@@ -129,7 +132,12 @@ bool shm_api_read(ShmHandle handle, int* out_status, char* out_msg) {
     if (!safe_lock(&handle->shm_ptr->mtx)) return false;
 
     if (out_status) *out_status = handle->shm_ptr->status_code;
-    if (out_msg) snprintf(out_msg, sizeof(handle->shm_ptr->message), "%s", handle->shm_ptr->message);
+    if (out_msg) {
+        // 共有メモリ上のデータがNULL終端されていなくても安全なように、読み取る最大文字数を制限する
+        int max_len = sizeof(handle->shm_ptr->message);
+        // コピー先バッファサイズ(max_len)と、コピー元からの最大読取文字数(max_len - 1)を両方指定
+        snprintf(out_msg, max_len, "%.*s", max_len - 1, handle->shm_ptr->message);
+    }
     DBG("SHM読出し: status=%d, msg=\"%s\"", out_status ? *out_status : -1, out_msg ? out_msg : "(null)");
 
     pthread_mutex_unlock(&handle->shm_ptr->mtx);
