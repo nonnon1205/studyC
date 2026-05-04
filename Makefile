@@ -19,19 +19,44 @@ endif
 SUBDIRS      = Common $(SHM_MODULE) Mgmt Collector Router Viewer MgmtCtl
 CLEAN_DIRS   = Common SHM PosixSHM Mgmt Collector Router Viewer MgmtCtl
 
-.PHONY: all debug clean test $(SUBDIRS)
+.PHONY: all debug asan clean test test-asan asan-fault test-fault-uaf test-fault-leak $(SUBDIRS)
 
 all: $(SUBDIRS)
 
 debug:
 	$(MAKE) SHM_IMPL=$(SHM_IMPL) IFDEF="-DDEBUG" all
 
+asan:
+	$(MAKE) SHM_IMPL=$(SHM_IMPL) IFDEF="-DDEBUG" CC="gcc -fsanitize=address -g -fno-omit-frame-pointer" all
+
+asan-fault:
+	$(MAKE) SHM_IMPL=$(SHM_IMPL) IFDEF="-DDEBUG -DENABLE_FAULT_INJECTION" CC="gcc -fsanitize=address -g -fno-omit-frame-pointer" all
+
 $(SUBDIRS):
-	$(MAKE) -C $@ IFDEF=$(IFDEF)
+	$(MAKE) -C $@ IFDEF="$(IFDEF)"
 
 test: all
 	python3 -m pip install -q -r tests/requirements.txt
 	cd tests && python3 -m pytest e2e/ -v
+
+test-asan:
+	$(MAKE) clean
+	$(MAKE) asan
+	python3 -m pip install -q -r tests/requirements.txt
+	cd tests && ASAN_OPTIONS=detect_leaks=1 python3 -m pytest e2e/ -v
+
+# ASanのデモ用ターゲット
+test-fault-uaf:
+	$(MAKE) clean
+	$(MAKE) asan-fault
+	@echo "\n\n💥 AddressSanitizer: Use-After-Free のエラー出力をデモします 💥\n"
+	@./Router/Router --fail-use-after-free || true
+
+test-fault-leak:
+	$(MAKE) clean
+	$(MAKE) asan-fault
+	@echo "\n\n💧 AddressSanitizer: メモリリークのエラー出力をデモします 💧\n"
+	@ASAN_OPTIONS=detect_leaks=1 ./Router/Router --fail-leak || true
 
 clean:
 	@for dir in $(CLEAN_DIRS); do \

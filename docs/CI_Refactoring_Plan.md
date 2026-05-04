@@ -47,7 +47,7 @@
 | エッジケーステスト仕様策定 (`EdgeCase_TestCases.md`) | 完了 |
 | エッジケーステストの実装 | **未着手** |
 | MgmtCtl 統合（GET_METRICS / RESET_METRICS ハンドラ） | **未着手** |
-| リソースリーク検査（Valgrind 導入） | **未着手** |
+| リソースリーク検査（AddressSanitizer 導入） | **未着手** |
 | テストカバレッジ計測（gcov / lcov） | **未着手** |
 
 ---
