@@ -13,9 +13,10 @@
 #include <stdbool.h>
 #include "shm_api.h"
 #include "mgmt_socket.h"
+#include "network_config.h"
 
-#define UDP_PORT 9999
-#define UDP_SEND_PORT 8888
+#define UDP_PORT get_network_udp_port()
+#define UDP_SEND_PORT get_network_udp_send_port()
 
 // --- 1. 初期化系（セットアップ） ---
 int setup_udp_socket(uint16_t port);

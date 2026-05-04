@@ -13,7 +13,7 @@
 #include "debug_log.h"
 #include "router_worker.h"
 #include "msg_common.h"
-#define DEST_TCP_PORT 7777
+#include "network_config.h"
 #define CONNECT_MAX_RETRIES 5
 #define CONNECT_RETRY_DELAY_S 3
 
@@ -27,9 +27,10 @@ void* router_worker(void* arg) {
     // 1. TCPクライアントソケットの準備
     int tcp_sock = socket(AF_INET, SOCK_STREAM, 0);
     int tcp_connected = 0;
+    int dest_tcp_port = get_network_tcp_port();
     struct sockaddr_in dest_addr = {0};
     dest_addr.sin_family = AF_INET;
-    dest_addr.sin_port = htons(DEST_TCP_PORT);
+    dest_addr.sin_port = htons(dest_tcp_port);
     inet_pton(AF_INET, "127.0.0.1", &dest_addr.sin_addr);
 
     if (tcp_sock < 0) {
@@ -40,7 +41,7 @@ void* router_worker(void* arg) {
 
     // TCPサーバーへの接続をリトライする
     for (int i = 0; i < CONNECT_MAX_RETRIES; i++) {
-        DBG("TCP接続試行 #%d to 127.0.0.1:%d", i + 1, DEST_TCP_PORT);
+        DBG("TCP接続試行 #%d to 127.0.0.1:%d", i + 1, dest_tcp_port);
         if (connect(tcp_sock, (struct sockaddr*)&dest_addr, sizeof(dest_addr)) == 0) {
             tcp_connected = 1;
             break;
@@ -68,7 +69,7 @@ void* router_worker(void* arg) {
         return NULL;
     }
     tcp_connected = 1;
-    GLOG_INFO("[Router] Viewer (Port: %d) とTCP接続確立！", DEST_TCP_PORT);
+    GLOG_INFO("[Router] Viewer (Port: %d) とTCP接続確立！", dest_tcp_port);
 
     // 2. Control Plane (MQ) の監視ループ
     while (1) {

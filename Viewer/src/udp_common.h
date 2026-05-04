@@ -13,7 +13,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <stdbool.h>
-#define UDP_PORT 8888
+#include "network_config.h"
+
+#define UDP_PORT get_network_udp_send_port()
 #define MSG_KEY 1234L
 
 struct msg_buffer {
