@@ -75,3 +75,7 @@ UNIX ドメインソケットの直叩きは行わない（実装詳細への依
 | 5-5 | `mgmtctl router status` | 終了コード0、ペイロードが `{"status":"running","uptime_s":N}` の JSON | CLI引数は `status`、内部コマンドは `GET_STATUS` |
 | 5-6 | `mgmtctl viewer status` | 終了コード0、ペイロードが `{"status":"running","uptime_s":N}` の JSON | CLI引数は `status`、内部コマンドは `GET_STATUS` |
 | 5-7 | `mgmtctl unknown_module ping` | 終了コード非0、stderr に `Unknown module:` を含む | 不正入力の異常系（ソケット通信前に失敗） |
+| 5-8 | `mgmtctl collector shutdown` | 終了コード0、`SHUTDOWN -> OK` と `shutdown initiated` を含む、かつ Collector プロセスが終了する | shutdown 正常系 |
+| 5-9 | `mgmtctl router shutdown` | 同上、Router プロセスが終了する | shutdown 正常系 |
+| 5-10 | `mgmtctl viewer shutdown` | 同上、Viewer プロセスが終了する | shutdown 正常系 |
+| 5-11 | `mgmtctl collector unknown_cmd` | 終了コード非0、stderr に `Unknown command:` を含む | 不正コマンド名の異常系（ソケット通信前に失敗） |

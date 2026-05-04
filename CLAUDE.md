@@ -160,7 +160,7 @@ if (something_init() < 0) {
 
 ## 問題発見時のルール
 
-コードレビューや作業中に問題・改善点を発見した場合、**CI が整うまでは即座に修正せず `docs/known_issues.md` に記録する**。
+コードレビューや作業中に問題・改善点を発見した場合、**CI が整うまでは即座に修正せず `docs/project/known_issues.md` に記録する**。
 
 ```markdown
 ## 問題タイトル
@@ -173,7 +173,7 @@ if (something_init() < 0) {
 
 ## 積み残し（既知の未対応事項）
 
-- `docs/APISpecification.text` に旧モジュール名が残っている（未更新）
+- `docs/api/APISpecification.text` に旧モジュール名が残っている（未更新）
 - ファイル命名規則の整理（例: `udp_worker.c` → `router_udp_worker.c`）
 - Mgmt 統合済み（Phase 2–5 完了）。GET_METRICS / RESET_METRICS ハンドラは未実装（MetricsHandle の組み込みが必要）
-- `shutdown all` コマンドの実装（`mgmtctl all shutdown` で全プロセスを一括停止する。仕様は `docs/MgmtCtl_CommandSpec.md` を参照）
+- `shutdown all` コマンドの実装（`mgmtctl all shutdown` で全プロセスを一括停止する。仕様は `docs/api/MgmtCtl_CommandSpec.md` を参照）

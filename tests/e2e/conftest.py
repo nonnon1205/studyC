@@ -18,6 +18,15 @@ UNIX_SOCKETS = [
     "/tmp/studyc_viewer.sock"
 ]
 
+def wait_for_unix_socket(path, timeout=5.0):
+    """UNIX ソケットファイルが出現するまで待つ。管理ソケットのバインド完了 = 初期化完了の指標。"""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if os.path.exists(path):
+            return True
+        time.sleep(0.05)
+    return False
+
 def wait_for_tcp_port(port, timeout=5.0):
     """TCP ポートが listen 状態になるまで待つ。タイムアウトしたら False を返す。"""
     deadline = time.time() + timeout
@@ -114,13 +123,20 @@ def studyc_processes():
         [f"{base_dir}/Router/Router"], env=env,
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
-    time.sleep(0.3)  # Router が SHM/MQ を初期化するのを待つ
+    if not wait_for_unix_socket("/tmp/studyc_router.sock", timeout=5.0):
+        _terminate_proc(router_proc)
+        _terminate_proc(viewer_proc)
+        pytest.fail("Router did not become ready within 5s")
 
     collector_proc = subprocess.Popen(
         [f"{base_dir}/Collector/Collector"], env=env,
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
-    time.sleep(0.3)  # Collector が UDP ソケットをバインドするのを待つ
+    if not wait_for_unix_socket("/tmp/studyc_collector.sock", timeout=5.0):
+        _terminate_proc(collector_proc)
+        _terminate_proc(router_proc)
+        _terminate_proc(viewer_proc)
+        pytest.fail("Collector did not become ready within 5s")
 
     yield {
         "collector": collector_proc,
