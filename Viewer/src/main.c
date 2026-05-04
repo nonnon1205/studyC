@@ -67,9 +67,6 @@ int main(void) {
     }
     pthread_mutex_unlock(&ctx.mtx);
 
-    // /* UDP worker disabled
-    // pthread_create(&t_udp, NULL, udp_worker, (void *)&ctx);
-    // */
     pthread_create(&t_tcp, NULL, tcp_worker, (void *)&ctx);
 
     /* mgmt: ハンドラ登録 → ワーカースレッド起動（失敗時はプロセス終了） */
@@ -117,17 +114,6 @@ int main(void) {
 
     log_info("[Main] --- 終了通知シーケンス開始 ---");
 
-    // /* UDP worker disabled - Poison Pill
-    // 1. UDPスレッドに致死命令（Poison Pill）を送る
-    // struct sockaddr_in dest;
-    // dest.sin_family = AF_INET;
-    // dest.sin_port = htons(UDP_PORT); // 既存のUDPポート定義
-    // inet_pton(AF_INET, "127.0.0.1", &dest.sin_addr);
-    // int tmp_fd = socket(AF_INET, SOCK_DGRAM, 0);
-    // sendto(tmp_fd, "POISON_PILL", 11, 0, (struct sockaddr *)&dest, sizeof(dest));
-    // close(tmp_fd);
-    // */
-
     // 3. Signalスレッドを叩き起こす
     pthread_kill(t_sig, SIGUSR1);
 
@@ -138,9 +124,6 @@ int main(void) {
     }
     
     // 各スレッドの合流を待つ
-    // /* UDP worker disabled
-    // pthread_join(t_udp, NULL);
-    // */
     pthread_join(t_sig, NULL);
     pthread_join(t_tcp, NULL);
     if (t_mgmt_created) {
@@ -149,7 +132,6 @@ int main(void) {
     }
 
     // 最終後片付け
-    close(ctx.udp_fd);
     close(ctx.shutdown_pipe[0]);
     close(ctx.shutdown_pipe[1]);
     if (registry_initialized) {

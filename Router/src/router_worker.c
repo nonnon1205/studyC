@@ -40,6 +40,7 @@ void* router_worker(void* arg) {
     }
 
     // TCPサーバーへの接続をリトライする
+    GLOG_INFO("[Router] Viewer (TCP Port: %d) への接続を開始します...", dest_tcp_port);
     for (int i = 0; i < CONNECT_MAX_RETRIES; i++) {
         DBG("TCP接続試行 #%d to 127.0.0.1:%d", i + 1, dest_tcp_port);
         if (connect(tcp_sock, (struct sockaddr*)&dest_addr, sizeof(dest_addr)) == 0) {

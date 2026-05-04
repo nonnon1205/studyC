@@ -12,6 +12,7 @@
 #define MODULE_NAME "TCP"
 #include "debug_log.h"
 #include "network_config.h"
+#include "unified_logger.h"
 
 #define TCP_RECV_BUF_SIZE 2048
 
@@ -41,7 +42,7 @@ void* tcp_worker(void* arg) {
         return NULL;
     }
 
-    printf("[TCP View] ポート %d で TestMsgRcv からの接続を待機中...\n", listen_port);
+    GLOG_INFO("[TCP View] ポート %d でクライアントからの接続を待機中...", listen_port);
 
     int client_sock = -1;
     struct pollfd fds[2];
@@ -69,7 +70,7 @@ void* tcp_worker(void* arg) {
 
         // --- メインから終了通知(パイプ書き込み)が来た場合 ---
         if (fds[0].revents & POLLIN) {
-            printf("[TCP View] 終了通知を受信しました。ループを抜けます。\n");
+            GLOG_INFO("[TCP View] 終了通知を受信しました。ループを抜けます。");
             break; 
         }
 
@@ -81,7 +82,7 @@ void* tcp_worker(void* arg) {
                 client_sock = accept(server_sock, (struct sockaddr*)&client_addr, &client_len);
                 if (client_sock >= 0) {
                     DBG("TCP新規接続受付: client_sock=%d", client_sock);
-                    printf("[TCP View] 🟢 TestMsgRcv が接続しました！\n");
+                    GLOG_INFO("[TCP View] 🟢 クライアントが接続しました！");
                 }
             } else {
                 char buffer[TCP_RECV_BUF_SIZE];
@@ -94,7 +95,7 @@ void* tcp_worker(void* arg) {
                     printf("----------------------------------------\n\n");
                 } else {
                     DBG("TCP切断検知: recv=%zd", bytes_read);
-                    printf("[TCP View] 🔴 TestMsgRcv が切断しました。\n");
+                    GLOG_INFO("[TCP View] 🔴 クライアントが切断しました。");
                     close(client_sock);
                     client_sock = -1;
                 }
@@ -105,7 +106,7 @@ void* tcp_worker(void* arg) {
     // クリーンアップ
     if (client_sock >= 0) close(client_sock);
     close(server_sock);
-    printf("[TCP View] リソースを解放して終了します。\n");
+    GLOG_INFO("[TCP View] リソースを解放して終了します。");
     
     return NULL;
 }
