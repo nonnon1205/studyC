@@ -30,6 +30,9 @@ int main(void) {
     sigaction(SIGINT,  &sa, NULL);
     sigaction(SIGTERM, &sa, NULL);
 
+    /* UNIXドメインソケット等での通信エラー（SIGPIPE）による突然死を防ぐ */
+    signal(SIGPIPE, SIG_IGN);
+
     log_init("Collector");
 
     int ipc_msqid = msgget(SYSTEM_IPC_KEY, 0666 | IPC_CREAT);

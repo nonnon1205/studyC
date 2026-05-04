@@ -92,11 +92,18 @@ void* router_worker(void* arg) {
                     char tcp_buf[1100];
                     snprintf(tcp_buf, sizeof(tcp_buf), "[TCP-RELAY] %s\n", payload);
 
-                    if (send(tcp_sock, tcp_buf, strlen(tcp_buf), 0) > 0) {
+                    /* MSG_NOSIGNAL でさらに安全を担保しつつ送信 */
+                    if (send(tcp_sock, tcp_buf, strlen(tcp_buf), MSG_NOSIGNAL) > 0) {
                         DBG("TCP送信完了: %zu bytes", strlen(tcp_buf));
                         GLOG_INFO("  -> [Router] TCPでViewerへ転送完了");
                     } else {
-                        GLOG_ERR("  -> [Router] TCP送信エラー: %s", safe_strerror(errno));
+                        if (errno == EPIPE || errno == ECONNRESET) {
+                            GLOG_INFO("[Router] Viewerの切断(EPIPE/ECONNRESET)を検知しました。終了します。");
+                            send_signal_event(ctx->main_msqid, SIGTERM);
+                            break;
+                        } else {
+                            GLOG_ERR("  -> [Router] TCP送信エラー(一時的): %s", safe_strerror(errno));
+                        }
                     }
                 }
             } else {

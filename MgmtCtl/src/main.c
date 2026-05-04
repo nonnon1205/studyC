@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <signal.h>
 #include "mgmt_protocol.h"
 #include "mgmt_paths.h"
 #include "mgmt_send.h"
@@ -85,6 +86,9 @@ static void print_usage(const char* prog)
 
 int main(int argc, char* argv[])
 {
+    /* 通信エラー（SIGPIPE）によるクラッシュを防ぐ */
+    signal(SIGPIPE, SIG_IGN);
+
     if (argc < 3) {
         print_usage(argv[0]);
         return 1;

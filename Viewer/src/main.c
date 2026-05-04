@@ -44,6 +44,9 @@ int main(void) {
     sigaddset(&set, SIGUSR1);
     pthread_sigmask(SIG_BLOCK, &set, NULL);
 
+    /* パイプやソケットへの書き込みエラー（SIGPIPE）による突然死を防ぐ */
+    signal(SIGPIPE, SIG_IGN);
+
     pthread_mutex_init(&ctx.mtx, NULL);
     pthread_cond_init(&ctx.cond, NULL);
     ctx.shutdown_requested = 0;

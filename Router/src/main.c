@@ -161,6 +161,9 @@ int main(int argc, char *argv[]) {
     }
     g_sem_initialized = 1;
 
+    /* 全体として SIGPIPE を無視（各関数がシグナルではなく errno=EPIPE でエラーを返すようにする） */
+    signal(SIGPIPE, SIG_IGN);
+
     sigemptyset(&set);
     sigaddset(&set, SIGINT);
     sigaddset(&set, SIGTERM);
