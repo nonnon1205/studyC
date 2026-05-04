@@ -126,6 +126,10 @@ int main(int argc, char *argv[]) {
 
     log_init("Router");
 
+    GLOG_INFO("==========================================");
+    GLOG_INFO(" Router 起動");
+    GLOG_INFO("==========================================");
+
     int mainmsqid = msgget(IPC_PRIVATE, 0666 | IPC_CREAT);
     if (mainmsqid == -1) {
         GLOG_ERR("msgget: %s", safe_strerror(errno));
@@ -230,7 +234,7 @@ int main(int argc, char *argv[]) {
     }
 #endif
 
-    GLOG_INFO("[Main] 指揮官、msgrcvにてイベント待機を開始します。");
+    GLOG_INFO("[Router] 準備完了 — イベント待機中");
 
     InternalMsg rx_msg;
 

@@ -122,7 +122,7 @@ void run_event_loop(int udp_fd, int ipc_msqid, ShmHandle shm_handle,
         nfds = 3;
     }
 
-    GLOG_INFO("[Collector] イベントループ開始 (Ctrl+C または 'quit' で終了)");
+    GLOG_INFO("[Collector] 準備完了 — イベント待機中");
 
     while (g_keep_running) {
         int ret = poll(fds, nfds, -1);

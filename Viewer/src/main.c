@@ -33,6 +33,10 @@ int main(void) {
 
     log_init("Viewer");
 
+    GLOG_INFO("==========================================");
+    GLOG_INFO(" Viewer 起動");
+    GLOG_INFO("==========================================");
+
     // 前準備
     sigemptyset(&set);
     sigaddset(&set, SIGTERM);
@@ -99,6 +103,7 @@ int main(void) {
     }
 
     // いずれかのルートで終了フラグが立つのを待つ
+    GLOG_INFO("[Viewer] 準備完了 — イベント待機中");
     pthread_mutex_lock(&ctx.mtx);
     while (ctx.shutdown_requested == 0) {
         pthread_cond_wait(&ctx.cond, &ctx.mtx);

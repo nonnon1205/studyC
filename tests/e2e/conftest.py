@@ -1,81 +1,92 @@
 import pytest
 import subprocess
+import socket
 import os
 import time
 import signal
 
-# 提案2: 環境変数でオーバーライド可能な設計
 UDP_PORT = int(os.environ.get("TEST_UDP_PORT", 9999))
 TCP_PORT = int(os.environ.get("TEST_TCP_PORT", 7777))
 IPC_KEY_HEX = os.environ.get("TEST_IPC_KEY", "0x54321")
-IPC_KEY_DEC = str(int(IPC_KEY_HEX, 16)) # ipcs コマンドは10進数で出力されることがあるため
+IPC_KEY_DEC = str(int(IPC_KEY_HEX, 16))
+SHM_KEY_HEX = "0x67890"   # SHM/src/shm_common.h の SHM_KEY
 
-SHM_NAME = "/studyc_shm" # POSIX SHM用
+SHM_NAME = "/studyc_shm"
 UNIX_SOCKETS = [
     "/tmp/studyc_collector.sock",
     "/tmp/studyc_router.sock",
     "/tmp/studyc_viewer.sock"
 ]
 
+def wait_for_tcp_port(port, timeout=5.0):
+    """TCP ポートが listen 状態になるまで待つ。タイムアウトしたら False を返す。"""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            with socket.create_connection(("127.0.0.1", port), timeout=0.1):
+                return True
+        except (ConnectionRefusedError, socket.timeout, OSError):
+            time.sleep(0.05)
+    return False
+
 def force_cleanup():
     """OSコマンドを使って強制的にリソースを掃除する"""
-    # UNIXドメインソケットの削除
     for sock in UNIX_SOCKETS:
         if os.path.exists(sock):
             os.remove(sock)
-            
-    # POSIX SHMの削除
+
     posix_shm_path = f"/dev/shm{SHM_NAME}"
     if os.path.exists(posix_shm_path):
         os.remove(posix_shm_path)
-        
-    # SystemV IPC (MQ / SHM) の削除
+
     try:
-        # MQ
         subprocess.run(f"ipcrm -Q {IPC_KEY_HEX}", shell=True, stderr=subprocess.DEVNULL)
-        # SHM
-        subprocess.run(f"ipcrm -M {IPC_KEY_HEX}", shell=True, stderr=subprocess.DEVNULL)
+        # SHM のキーは MQ と別 (0x67890)
+        subprocess.run(f"ipcrm -M {SHM_KEY_HEX}", shell=True, stderr=subprocess.DEVNULL)
     except Exception:
         pass
 
 def check_for_leaks():
     """リソースがリークしていないか検査する。リークがあれば詳細文字列を返す"""
     leaks = []
-    
-    # 1. UNIXソケット
+
     for sock in UNIX_SOCKETS:
         if os.path.exists(sock):
             leaks.append(f"UNIX Socket leaked: {sock}")
-            
-    # 2. POSIX SHM
+
     if os.path.exists(f"/dev/shm{SHM_NAME}"):
         leaks.append(f"POSIX SHM leaked: {SHM_NAME}")
-        
-    # 3. SystemV IPC (ipcs コマンドで確認)
+
     try:
         out = subprocess.check_output("ipcs -q -m", shell=True, universal_newlines=True)
         if IPC_KEY_HEX in out or IPC_KEY_DEC in out:
             leaks.append(f"SystemV IPC (MQ/SHM) leaked for key {IPC_KEY_HEX}")
     except subprocess.CalledProcessError:
         pass
-        
+
     return leaks
+
+def _terminate_proc(proc):
+    """プロセスに SIGINT → wait → タイムアウトなら SIGKILL の順に終了させる"""
+    if proc.poll() is not None:
+        return
+    proc.send_signal(signal.SIGINT)
+    try:
+        proc.wait(timeout=3.0)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait()
 
 @pytest.fixture(scope="session", autouse=True)
 def manage_resources():
     """テストセッション全体の開始・終了処理"""
-    # 1. テスト開始前の準備（前回のクラッシュ残骸を消す）
     force_cleanup()
-    
-    yield # ここでテスト群が実行される
-    
-    # 2. テスト終了後のリーク検出（提案1の解決策）
+
+    yield
+
     leaks = check_for_leaks()
-    
-    # 3. 次回のために掃除しておく
     force_cleanup()
-    
-    # 4. リークがあればアサーションエラーとしてテスト全体を失敗させる
+
     if leaks:
         pytest.fail("Resource Leak Detected!\n" + "\n".join(leaks))
 
@@ -83,30 +94,38 @@ def manage_resources():
 def studyc_processes():
     """各テストケースごとに Collector, Router, Viewer を起動・停止するフィクスチャ"""
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-    
-    # プロセス起動 (環境変数を渡す)
+
     env = os.environ.copy()
-    
-    # ※現状はハードコードされているが、将来Phase 2でC言語側が環境変数を読むようになる
-    env["UDP_PORT"] = str(UDP_PORT) 
-    
-    viewer_proc = subprocess.Popen([f"{base_dir}/Viewer/Viewer"], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    time.sleep(0.1) # TCPサーバーが立ち上がるのを少し待つ
-    
-    router_proc = subprocess.Popen([f"{base_dir}/Router/Router"], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    time.sleep(0.1) # SHM/MQの起動を少し待つ
-    
-    collector_proc = subprocess.Popen([f"{base_dir}/Collector/Collector"], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    time.sleep(0.2) # 全体が繋がるのを待つ
-    
+    env["UDP_PORT"] = str(UDP_PORT)
+
+    # stdin=subprocess.PIPE: 子プロセスに EOF stdin が渡るのを防ぐ
+    viewer_proc = subprocess.Popen(
+        [f"{base_dir}/Viewer/Viewer"], env=env,
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+
+    # Viewer の TCP サーバーが listen 状態になってから Router を起動する
+    if not wait_for_tcp_port(TCP_PORT, timeout=5.0):
+        _terminate_proc(viewer_proc)
+        pytest.fail(f"Viewer did not start listening on TCP port {TCP_PORT} within 5s")
+
+    router_proc = subprocess.Popen(
+        [f"{base_dir}/Router/Router"], env=env,
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    time.sleep(0.3)  # Router が SHM/MQ を初期化するのを待つ
+
+    collector_proc = subprocess.Popen(
+        [f"{base_dir}/Collector/Collector"], env=env,
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    time.sleep(0.3)  # Collector が UDP ソケットをバインドするのを待つ
+
     yield {
         "collector": collector_proc,
         "router": router_proc,
         "viewer": viewer_proc
     }
-    
-    # 終了処理 (SIGINTを送って正常終了させ、クリーンアップロジックが働くか確認する)
+
     for proc in [collector_proc, router_proc, viewer_proc]:
-        if proc.poll() is None: # まだ動いていれば
-            proc.send_signal(signal.SIGINT)
-            proc.wait(timeout=2.0)
+        _terminate_proc(proc)
