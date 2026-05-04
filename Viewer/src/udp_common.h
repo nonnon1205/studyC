@@ -16,11 +16,10 @@
 #include "network_config.h"
 
 #define UDP_PORT get_network_udp_send_port()
-#define MSG_KEY 1234L
 
 struct msg_buffer {
     long msg_type;
-    char msg_text[100];
+    char msg_text[MAX_PAYLOAD_SIZE];
 };
 
 typedef struct {

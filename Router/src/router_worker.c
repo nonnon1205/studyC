@@ -82,7 +82,7 @@ void* router_worker(void* arg) {
 
             // 3. 通知を受けたら Data Plane (SHM) から重いデータを回収
             int status_read;
-            char payload[1024] = {0};
+            char payload[MAX_PAYLOAD_SIZE] = {0};
 
             if (shm_api_read(ctx->shm_handle, &status_read, payload)) {
                 DBG("SHM読出し成功: status=%d, payload=\"%s\"", status_read, payload);
@@ -90,7 +90,7 @@ void* router_worker(void* arg) {
 
                 // 4. TCPに乗せ換えて Viewer へ転送
                 if (tcp_connected && tcp_sock >= 0) {
-                    char tcp_buf[1100];
+                    char tcp_buf[MAX_PAYLOAD_SIZE + 64];
                     snprintf(tcp_buf, sizeof(tcp_buf), "[TCP-RELAY] %s\n", payload);
 
                     /* MSG_NOSIGNAL でさらに安全を担保しつつ送信 */

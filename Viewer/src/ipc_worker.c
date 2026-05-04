@@ -17,7 +17,7 @@ void* ipc_worker(void* arg) {
     AppContext *ctx = (AppContext *)arg;
     struct msg_buffer message;
 
-    ctx->msqid = msgget(MSG_KEY, 0666 | IPC_CREAT);
+    ctx->msqid = msgget(VIEWER_MSG_KEY, 0666 | IPC_CREAT);
     printf("[IPC] 待機中...\n");
 
     while (1) {

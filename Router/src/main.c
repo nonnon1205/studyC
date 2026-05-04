@@ -22,6 +22,7 @@
 #include "mgmt_worker.h"
 #include "mgmt_paths.h"
 #include "mgmt_handlers.h"
+#include "network_config.h"
 
 #ifdef ENABLE_FAULT_INJECTION
 static void print_usage(const char* prog) {
@@ -101,8 +102,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-        g_fail_race = 1;
-    }
+    g_fail_race = fail_race;
 #else
     char *leak_buf = NULL;
 #endif
@@ -136,7 +136,7 @@ int main(int argc, char *argv[]) {
         goto cleanup_log;
     }
 
-    int msqid = msgget(MSG_KEY, 0666 | IPC_CREAT);
+    int msqid = msgget(VIEWER_MSG_KEY, 0666 | IPC_CREAT);
     if (msqid == -1) {
         GLOG_ERR("msgget: %s", safe_strerror(errno));
         goto cleanup_main_msq;

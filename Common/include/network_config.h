@@ -10,6 +10,12 @@
 
 #include <stdlib.h>
 
+/* Viewer スレッド間通信用 MQ キー */
+#define VIEWER_MSG_KEY 1234L
+
+/* メッセージ・ペイロードの最大バッファサイズ */
+#define MAX_PAYLOAD_SIZE 1024
+
 /* デフォルトのポート番号（マジックナンバーの集約） */
 #define DEFAULT_NETWORK_UDP_PORT 9999
 #define DEFAULT_NETWORK_TCP_PORT 7777
