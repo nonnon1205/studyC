@@ -11,6 +11,10 @@
 #include "mgmt_socket.h"
 #include "unified_logger.h"
 
+#ifndef UNIX_PATH_MAX
+#define UNIX_PATH_MAX 108
+#endif
+
 /* ============================================================================
  * Management Socket State
  * ============================================================================
@@ -19,7 +23,7 @@
 struct MgmtSocket {
     int socket_fd;                  /* UNIX domain socket FD */
     struct sockaddr_un sock_addr;   /* Socket address structure */
-    char socket_path[108];          /* Stored path for unlink on destroy */
+    char socket_path[UNIX_PATH_MAX];/* Stored path for unlink on destroy */
     uint64_t total_requests;        /* Statistics: total commands received */
     uint64_t total_responses;       /* Statistics: total responses sent */
     uint64_t failed_requests;       /* Statistics: request failures */

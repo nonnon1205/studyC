@@ -11,6 +11,8 @@
 #include <sys/types.h>
 #include "unified_logger.h"
 
+#define MAX_LOG_MESSAGE_LEN 2048
+
 struct UlogContext {
     char ident[64];              /* Syslog identifier */
     UlogLevel min_level;         /* Minimum level to output */
@@ -77,7 +79,7 @@ static void ulog_output(UlogHandle logger, UlogLevel level,
     pthread_mutex_lock(&logger->lock);
 
     /* Format message */
-    char message[2048];
+    char message[MAX_LOG_MESSAGE_LEN];
     int offset = 0;
 
     /* Add timestamp if enabled */

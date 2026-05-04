@@ -11,8 +11,9 @@
 #include "udp_common.h"
 #define MODULE_NAME "TCP"
 #include "debug_log.h"
+#include "network_config.h"
 
-#define LISTEN_PORT 7777
+#define TCP_RECV_BUF_SIZE 2048
 
 void* tcp_worker(void* arg) {
     AppContext* ctx = (AppContext*)arg;
@@ -26,7 +27,8 @@ void* tcp_worker(void* arg) {
     struct sockaddr_in server_addr = {0};
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
-    server_addr.sin_port = htons(LISTEN_PORT);
+    int listen_port = get_network_tcp_port();
+    server_addr.sin_port = htons(listen_port);
 
     if (bind(server_sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
         perror("[TCP] bind");
@@ -39,7 +41,7 @@ void* tcp_worker(void* arg) {
         return NULL;
     }
 
-    printf("[TCP View] ポート %d で TestMsgRcv からの接続を待機中...\n", LISTEN_PORT);
+    printf("[TCP View] ポート %d で TestMsgRcv からの接続を待機中...\n", listen_port);
 
     int client_sock = -1;
     struct pollfd fds[2];
@@ -82,7 +84,7 @@ void* tcp_worker(void* arg) {
                     printf("[TCP View] 🟢 TestMsgRcv が接続しました！\n");
                 }
             } else {
-                char buffer[2048];
+                char buffer[TCP_RECV_BUF_SIZE];
                 ssize_t bytes_read = recv(client_sock, buffer, sizeof(buffer) - 1, 0);
                 if (bytes_read > 0) {
                     buffer[bytes_read] = '\0';

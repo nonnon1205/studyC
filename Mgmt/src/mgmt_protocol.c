@@ -2,6 +2,8 @@
 #include <time.h>
 #include "mgmt_protocol.h"
 
+#define USEC_PER_SEC 1000000ULL
+
 /**
  * Initialize a management command request
  */
@@ -63,9 +65,9 @@ uint64_t mgmt_response_latency_us(const MgmtCommandResponse* resp)
 {
     if (!resp) return 0;
 
-    uint64_t req_us = (uint64_t)resp->request_timestamp.tv_sec * 1000000 +
+    uint64_t req_us = (uint64_t)resp->request_timestamp.tv_sec * USEC_PER_SEC +
                       resp->request_timestamp.tv_nsec / 1000;
-    uint64_t resp_us = (uint64_t)resp->response_timestamp.tv_sec * 1000000 +
+    uint64_t resp_us = (uint64_t)resp->response_timestamp.tv_sec * USEC_PER_SEC +
                        resp->response_timestamp.tv_nsec / 1000;
 
     return (resp_us > req_us) ? (resp_us - req_us) : 0;

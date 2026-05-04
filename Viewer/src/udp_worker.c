@@ -13,6 +13,8 @@
 #define MODULE_NAME "UDP"
 #include "debug_log.h"
 
+#define POISON_PILL_MSG "POISON_PILL"
+
 // --- 1. UDPスレッド ---
 void* udp_worker(void* arg) {
     AppContext *ctx = (AppContext *)arg;
@@ -54,8 +56,8 @@ void* udp_worker(void* arg) {
         }
 
         // パターンB: メインスレッドからの致死命令（Poison Pill）
-        if (strncmp(buffer, "POISON_PILL", 11) == 0) {
-            DBG("POISON_PILL受信");
+        if (strncmp(buffer, POISON_PILL_MSG, sizeof(POISON_PILL_MSG) - 1) == 0) {
+            DBG(POISON_PILL_MSG "受信");
             printf("[UDP] メインから致死命令(POISON_PILL)を受信。自害します。\n");
             break;
         }
