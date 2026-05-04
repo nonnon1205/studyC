@@ -19,7 +19,7 @@
 #include "mgmt_handlers.h"
 
 int main(void) {
-    pthread_t t_ipc, t_sig, t_tcp;
+    pthread_t t_sig, t_tcp;
     pthread_t t_mgmt;
     int t_mgmt_created = 0;
     int registry_initialized = 0;
@@ -70,7 +70,6 @@ int main(void) {
     // /* UDP worker disabled
     // pthread_create(&t_udp, NULL, udp_worker, (void *)&ctx);
     // */
-    pthread_create(&t_ipc, NULL, ipc_worker, (void *)&ctx);
     pthread_create(&t_tcp, NULL, tcp_worker, (void *)&ctx);
 
     /* mgmt: ハンドラ登録 → ワーカースレッド起動（失敗時はプロセス終了） */
@@ -129,10 +128,6 @@ int main(void) {
     // close(tmp_fd);
     // */
 
-    // 2. IPCスレッドを叩き起こす
-    struct msg_buffer stop_msg = {1, "EXIT"};
-    msgsnd(ctx.msqid, &stop_msg, sizeof(stop_msg.msg_text), 0);
-
     // 3. Signalスレッドを叩き起こす
     pthread_kill(t_sig, SIGUSR1);
 
@@ -146,7 +141,6 @@ int main(void) {
     // /* UDP worker disabled
     // pthread_join(t_udp, NULL);
     // */
-    pthread_join(t_ipc, NULL);
     pthread_join(t_sig, NULL);
     pthread_join(t_tcp, NULL);
     if (t_mgmt_created) {
@@ -155,7 +149,6 @@ int main(void) {
     }
 
     // 最終後片付け
-    msgctl(ctx.msqid, IPC_RMID, NULL);
     close(ctx.udp_fd);
     close(ctx.shutdown_pipe[0]);
     close(ctx.shutdown_pipe[1]);

@@ -17,16 +17,10 @@
 
 #define UDP_PORT get_network_udp_send_port()
 
-struct msg_buffer {
-    long msg_type;
-    char msg_text[MAX_PAYLOAD_SIZE];
-};
-
 typedef struct {
     pthread_mutex_t mtx;
     pthread_cond_t  cond;
     volatile int shutdown_requested;
-    int msqid;
     int udp_fd;
     bool signal_thread_ready; // 追加: Signalスレッドの準備完了フラグ   
     int shutdown_pipe[2]; 
@@ -38,7 +32,6 @@ typedef struct {
 } SignalWorkerArgs;
 
 void* udp_worker(void* arg);
-void* ipc_worker(void* arg);
 void* signal_worker(void* arg);
 void* tcp_worker(void* arg);
 
