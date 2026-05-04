@@ -5,9 +5,9 @@
 lib/
 
 # Executables
-Collector
-Router
-Viewer
+Collector/Collector
+Router/Router
+Viewer/Viewer
 test_common
 
 # Local environment settings
