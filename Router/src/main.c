@@ -136,18 +136,20 @@ int main(int argc, char *argv[]) {
         goto cleanup_log;
     }
 
-    int msqid = msgget(VIEWER_MSG_KEY, 0666 | IPC_CREAT);
-    if (msqid == -1) {
-        GLOG_ERR("msgget: %s", safe_strerror(errno));
-        goto cleanup_main_msq;
-    }
-
     router_ctx.main_msqid = mainmsqid;
     router_ctx.ipc_msqid = msgget(SYSTEM_IPC_KEY, 0666 | IPC_CREAT);
+    if (router_ctx.ipc_msqid != -1) {
+        /* 前回異常終了時などに残った古いメッセージ(ゴミ)を刈り取る */
+        IpcNotifyMessage dummy;
+        while (msgrcv(router_ctx.ipc_msqid, &dummy, sizeof(dummy) - sizeof(long), 0, IPC_NOWAIT | MSG_NOERROR) != -1) {
+            // 空読みして捨てる
+        }
+    }
+
     router_ctx.shm_handle = shm_api_init();
     if (!router_ctx.shm_handle) {
         GLOG_ERR("共有メモリの初期化に失敗しました。");
-        goto cleanup_msq;
+        goto cleanup_main_msq;
     }
 
     if (pipe(g_shutdown_pipe) != 0) {
@@ -335,8 +337,6 @@ cleanup_pipe:
 cleanup_shm:
     shm_api_close(router_ctx.shm_handle);
 
-cleanup_msq:
-    if (msgctl(msqid, IPC_RMID, NULL) == -1) GLOG_ERR("msgctl(IPC_RMID): %s", safe_strerror(errno));
 cleanup_main_msq:
     if (msgctl(mainmsqid, IPC_RMID, NULL) == -1) GLOG_ERR("msgctl(IPC_RMID): %s", safe_strerror(errno));
 cleanup_log:

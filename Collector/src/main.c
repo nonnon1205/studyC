@@ -36,6 +36,14 @@ int main(void) {
     log_init("Collector");
 
     int ipc_msqid = msgget(SYSTEM_IPC_KEY, 0666 | IPC_CREAT);
+    if (ipc_msqid != -1) {
+        /* 前回異常終了時などに残った古いメッセージ(ゴミ)を刈り取る */
+        IpcNotifyMessage dummy;
+        while (msgrcv(ipc_msqid, &dummy, sizeof(dummy) - sizeof(long), 0, IPC_NOWAIT | MSG_NOERROR) != -1) {
+            // 空読みして捨てる
+        }
+    }
+
     ShmHandle shm_handle = shm_api_init();
     if (!shm_handle) {
         GLOG_FATAL("共有メモリの初期化に失敗しました。");
