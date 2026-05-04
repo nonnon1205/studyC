@@ -19,7 +19,7 @@ endif
 SUBDIRS      = Common $(SHM_MODULE) Mgmt Collector Router Viewer MgmtCtl
 CLEAN_DIRS   = Common SHM PosixSHM Mgmt Collector Router Viewer MgmtCtl
 
-.PHONY: all debug asan clean test test-asan asan-fault test-fault-uaf test-fault-leak $(SUBDIRS)
+.PHONY: all debug asan tsan clean test test-asan test-tsan asan-fault test-fault-uaf test-fault-leak $(SUBDIRS)
 
 all: $(SUBDIRS)
 
@@ -27,10 +27,13 @@ debug:
 	$(MAKE) SHM_IMPL=$(SHM_IMPL) IFDEF="-DDEBUG" all
 
 asan:
-	$(MAKE) SHM_IMPL=$(SHM_IMPL) IFDEF="-DDEBUG" CC="gcc -fsanitize=address -g -fno-omit-frame-pointer" all
+	$(MAKE) SHM_IMPL=$(SHM_IMPL) IFDEF="-DDEBUG" CC="gcc -fsanitize=address,undefined -g -fno-omit-frame-pointer" all
 
 asan-fault:
-	$(MAKE) SHM_IMPL=$(SHM_IMPL) IFDEF="-DDEBUG -DENABLE_FAULT_INJECTION" CC="gcc -fsanitize=address -g -fno-omit-frame-pointer" all
+	$(MAKE) SHM_IMPL=$(SHM_IMPL) IFDEF="-DDEBUG -DENABLE_FAULT_INJECTION" CC="gcc -fsanitize=address,undefined -g -fno-omit-frame-pointer" all
+
+tsan:
+	$(MAKE) SHM_IMPL=$(SHM_IMPL) IFDEF="-DDEBUG" CC="gcc -fsanitize=thread -g -fno-omit-frame-pointer" all
 
 $(SUBDIRS):
 	$(MAKE) -C $@ IFDEF="$(IFDEF)"
@@ -44,6 +47,12 @@ test-asan:
 	$(MAKE) asan
 	python3 -m pip install -q -r tests/requirements.txt
 	cd tests && ASAN_OPTIONS=detect_leaks=1 python3 -m pytest e2e/ -v
+
+test-tsan:
+	$(MAKE) clean
+	$(MAKE) tsan
+	python3 -m pip install -q -r tests/requirements.txt
+	cd tests && TSAN_OPTIONS="history_size=7" python3 -m pytest e2e/ -v
 
 # ASanのデモ用ターゲット
 test-fault-uaf:

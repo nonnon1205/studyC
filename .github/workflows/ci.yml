@@ -42,5 +42,11 @@ jobs:
     - name: Static Analysis (clang-tidy)
       run: bash run_clang_tidy.sh
 
-    - name: Run E2E Tests
+    - name: Run E2E Tests (Normal Build)
       run: make test
+
+    - name: Run E2E Tests (ASan + UBSan)
+      run: make test-asan
+
+    - name: Run E2E Tests (TSan)
+      run: make test-tsan
