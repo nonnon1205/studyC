@@ -23,9 +23,10 @@ void* udp_worker(void* arg) {
         return NULL;
     }
 
+    int udp_port = get_network_udp_send_port();
     struct sockaddr_in addr = {0};
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(UDP_PORT);
+    addr.sin_port = htons(udp_port);
     addr.sin_addr.s_addr = INADDR_ANY;
 
     if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) != 0) {
@@ -35,7 +36,7 @@ void* udp_worker(void* arg) {
     }
 
     char buf[256];
-    GLOG_INFO("[UDP] 待機中 (Port: %d)", UDP_PORT);
+    GLOG_INFO("[UDP] 待機中 (Port: %d)", udp_port);
 
     int stop_fd = g_shutdown_pipe[0];
     if (stop_fd == -1) {

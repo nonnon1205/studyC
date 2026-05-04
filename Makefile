@@ -26,13 +26,13 @@ all: $(SUBDIRS)
 debug:
 	$(MAKE) SHM_IMPL=$(SHM_IMPL) IFDEF="-DDEBUG" all
 
-asan:
+asan: clean
 	$(MAKE) SHM_IMPL=$(SHM_IMPL) IFDEF="-DDEBUG" CC="gcc -fsanitize=address,undefined -g -fno-omit-frame-pointer" all
 
-asan-fault:
+asan-fault: clean
 	$(MAKE) SHM_IMPL=$(SHM_IMPL) IFDEF="-DDEBUG -DENABLE_FAULT_INJECTION" CC="gcc -fsanitize=address,undefined -g -fno-omit-frame-pointer" all
 
-tsan:
+tsan: clean
 	$(MAKE) SHM_IMPL=$(SHM_IMPL) IFDEF="-DDEBUG" CC="gcc -fsanitize=thread -g -fno-omit-frame-pointer" all
 
 $(SUBDIRS):
@@ -42,28 +42,20 @@ test: all
 	python3 -m pip install -q -r tests/requirements.txt
 	cd tests && python3 -m pytest e2e/ -v
 
-test-asan:
-	$(MAKE) clean
-	$(MAKE) asan
+test-asan: asan
 	python3 -m pip install -q -r tests/requirements.txt
 	cd tests && ASAN_OPTIONS=detect_leaks=1 python3 -m pytest e2e/ -v
 
-test-tsan:
-	$(MAKE) clean
-	$(MAKE) tsan
+test-tsan: tsan
 	python3 -m pip install -q -r tests/requirements.txt
 	cd tests && TSAN_OPTIONS="history_size=7" python3 -m pytest e2e/ -v
 
 # ASanのデモ用ターゲット
-test-fault-uaf:
-	$(MAKE) clean
-	$(MAKE) asan-fault
+test-fault-uaf: asan-fault
 	@echo "\n\n💥 AddressSanitizer: Use-After-Free のエラー出力をデモします 💥\n"
 	@./Router/Router --fail-use-after-free || true
 
-test-fault-leak:
-	$(MAKE) clean
-	$(MAKE) asan-fault
+test-fault-leak: asan-fault
 	@echo "\n\n💧 AddressSanitizer: メモリリークのエラー出力をデモします 💧\n"
 	@ASAN_OPTIONS=detect_leaks=1 ./Router/Router --fail-leak || true
 

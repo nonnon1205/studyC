@@ -5,6 +5,7 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <syslog.h>
+#include "shm_api.h"
 
 // 共有メモリ用のキー
 #define SHM_KEY 0x67890
@@ -15,7 +16,7 @@
 typedef struct {
     pthread_mutex_t mtx;    // プロセス間共有Mutex
     int  status_code;       // 状態コード
-    char message[256];      // メッセージ内容
+    char message[MAX_PAYLOAD_SIZE];  // メッセージ内容
     volatile int updated;   // 書き込み完了フラグ
 } SharedData;
 

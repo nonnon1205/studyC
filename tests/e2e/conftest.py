@@ -96,7 +96,8 @@ def studyc_processes():
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 
     env = os.environ.copy()
-    env["UDP_PORT"] = str(UDP_PORT)
+    env["STUDYC_UDP_PORT"] = str(UDP_PORT)
+    env["STUDYC_TCP_PORT"] = str(TCP_PORT)
 
     # stdin=subprocess.PIPE: 子プロセスに EOF stdin が渡るのを防ぐ
     viewer_proc = subprocess.Popen(

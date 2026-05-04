@@ -3,6 +3,9 @@
 
 #include <stdbool.h>
 
+// SHM を通じて転送できるペイロードの最大バイト数（呼び出し側のバッファサイズ基準）
+#define MAX_PAYLOAD_SIZE 1024
+
 // 内部構造を隠蔽するためのハンドル（Opaque Pointer）
 typedef struct ShmContext* ShmHandle;
 

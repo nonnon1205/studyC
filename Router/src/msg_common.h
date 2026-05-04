@@ -8,6 +8,7 @@
 #include <signal.h>
 #include "shared_ipc.h"
 #include "shm_api.h"
+#include "network_config.h"
 
 extern atomic_bool g_keep_running;
 extern sem_t g_signal_worker_ready;
@@ -52,7 +53,6 @@ void* udp_worker(void* arg);
 void* signal_worker(void* arg);
 void* ipc_worker(void* arg);
 #define MSG_KEY 0x54321  // 内部通信用メッセージキー
-#define UDP_PORT 8888
 #define UDP_QUIT_CMD "QUIT"
 #define MSG_SIZE sizeof(InternalMsg) - sizeof(long)
 #define MSG_QUEUE_SIZE 10
