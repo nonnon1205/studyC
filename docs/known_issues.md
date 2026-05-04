@@ -5,11 +5,6 @@ CI が整うまで修正を保留している問題を記録する。
 
 ---
 
-## test_data_pipeline.py に `import subprocess` が欠落
-- **場所**: [tests/e2e/test_data_pipeline.py](../tests/e2e/test_data_pipeline.py)
-- **内容**: `subprocess.TimeoutExpired` を使用しているが `import subprocess` がない。現状テストはインポートエラーで即死する。
-- **優先度**: high
-
 ## EdgeCase_TestCases.md のバッファサイズが実装と不一致
 - **場所**: [docs/EdgeCase_TestCases.md](EdgeCase_TestCases.md) — 項目 1-2, 1-3
 - **内容**: テスト基準値が 1023/1024 バイトだが、SHM の `message` フィールドは `char message[256]`。UDP 受信バッファ（1024）と SHM バッファ（256）を混同している。
@@ -24,6 +19,11 @@ CI が整うまで修正を保留している問題を記録する。
 - **場所**: [Router/src/mgmt_handlers.c:29, 42](../Router/src/mgmt_handlers.c#L29)
 - **内容**: `RouterMgmtCtx* c` は `const RouterMgmtCtx*` にできる。cppcheck の style 指摘。
 - **優先度**: low
+
+## E2E テスト: メッセージがパイプラインを貫通しない
+- **場所**: [tests/e2e/test_data_pipeline.py](../tests/e2e/test_data_pipeline.py)
+- **内容**: `make test` 実行時、Viewer が Router の TCP 接続は受け入れるが "Hello_CI_Pipeline_Test" が届かない。Collector(UDP:9999) → SHM/MQ → Router → TCP → Viewer の経路のどこかで詰まっている。Viewer の出力にメッセージ表示の行がないことから、Router の TCP 送信段階以前で止まっている可能性が高い。
+- **優先度**: high
 
 ## SIGPIPE 対策未実装
 - **場所**: Router の TCP 送信部分

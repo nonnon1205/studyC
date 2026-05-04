@@ -12,3 +12,9 @@ test_common
 
 # Local environment settings
 env.mk
+
+# Python virtual environment
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/

@@ -82,7 +82,7 @@ def manage_resources():
 @pytest.fixture(scope="function")
 def studyc_processes():
     """各テストケースごとに Collector, Router, Viewer を起動・停止するフィクスチャ"""
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
     
     # プロセス起動 (環境変数を渡す)
     env = os.environ.copy()

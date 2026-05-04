@@ -19,7 +19,7 @@ endif
 SUBDIRS      = Common $(SHM_MODULE) Mgmt Collector Router Viewer MgmtCtl
 CLEAN_DIRS   = Common SHM PosixSHM Mgmt Collector Router Viewer MgmtCtl
 
-.PHONY: all debug clean $(SUBDIRS)
+.PHONY: all debug clean test $(SUBDIRS)
 
 all: $(SUBDIRS)
 
@@ -28,6 +28,10 @@ debug:
 
 $(SUBDIRS):
 	$(MAKE) -C $@ IFDEF=$(IFDEF)
+
+test: all
+	python3 -m pip install -q -r tests/requirements.txt
+	cd tests && python3 -m pytest e2e/ -v
 
 clean:
 	@for dir in $(CLEAN_DIRS); do \

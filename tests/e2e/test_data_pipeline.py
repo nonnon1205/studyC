@@ -1,4 +1,5 @@
 import socket
+import subprocess
 import time
 from conftest import UDP_PORT, TCP_PORT
 

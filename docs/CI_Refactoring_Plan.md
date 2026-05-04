@@ -15,8 +15,8 @@
 | E2E テストスクリプト作成 (`conftest.py`, `test_data_pipeline.py`) | 完了 |
 | `tests/e2e/` へのディレクトリ配置 | 完了 |
 | `tests/requirements.txt` の配置 | 完了 |
-| Makefile に `make test` ターゲット追加 | **未着手** |
-| E2E テストの実行検証 | **未着手** |
+| Makefile に `make test` ターゲット追加 | 完了 |
+| E2E テストの実行検証 | 完了（テスト失敗を検出・known_issues.md に記録済み） |
 
 **残作業:**
 ```makefile
