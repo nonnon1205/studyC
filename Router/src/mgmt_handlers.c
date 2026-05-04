@@ -26,7 +26,7 @@ static int handler_ping(const MgmtCommandRequest* req,
 static int handler_get_status(const MgmtCommandRequest* req,
                               MgmtCommandResponse* resp, void* ctx)
 {
-    RouterMgmtCtx* c = (RouterMgmtCtx*)ctx;
+    const RouterMgmtCtx* c = (const RouterMgmtCtx*)ctx;
     long uptime = (long)(time(NULL) - c->start_time);
     char buf[256];
     snprintf(buf, sizeof(buf),
@@ -39,7 +39,7 @@ static int handler_get_status(const MgmtCommandRequest* req,
 static int handler_shutdown(const MgmtCommandRequest* req,
                             MgmtCommandResponse* resp, void* ctx)
 {
-    RouterMgmtCtx* c = (RouterMgmtCtx*)ctx;
+    const RouterMgmtCtx* c = (const RouterMgmtCtx*)ctx;
     const char* msg = "shutdown initiated";
     mgmt_response_init(resp, req->request_id, MGMT_RESULT_OK,
                        "router", msg, strlen(msg) + 1);
