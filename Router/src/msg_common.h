@@ -13,8 +13,6 @@ extern atomic_bool g_keep_running;
 extern sem_t g_signal_worker_ready;
 extern int g_shutdown_pipe[2];
 
-void* shm_worker(void* arg);
-
 // 1. メッセージ型の定義
 typedef enum {
     EV_QUIT,    // 終了要求
@@ -53,7 +51,6 @@ int send_fatal_event(int msqid, const char* payload);
 void* udp_worker(void* arg);
 void* signal_worker(void* arg);
 void* ipc_worker(void* arg);
-void* shm_worker(void* arg);
 #define MSG_KEY 0x54321  // 内部通信用メッセージキー
 #define UDP_PORT 8888
 #define UDP_QUIT_CMD "QUIT"
