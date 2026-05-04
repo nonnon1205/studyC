@@ -3,7 +3,7 @@ import struct
 import time
 import os
 
-def test_mgmt_edge_cases():
+def test_mgmt_edge_cases(studyc_processes):
     """
     Mgmtソケット（UNIXドメインソケット）に対する不正なリクエスト送信テスト。
     ASanでクラッシュ（バッファオーバーフローやパース時のセグフォ）が起きないか確認する。
@@ -48,3 +48,7 @@ def test_mgmt_edge_cases():
 
     finally:
         sock.close()
+
+    procs = studyc_processes
+    for name, proc in procs.items():
+        assert proc.poll() is None, f"{name} crashed during mgmt edge case tests (exit code: {proc.poll()})"

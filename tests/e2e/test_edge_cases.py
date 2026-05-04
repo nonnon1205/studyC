@@ -2,7 +2,7 @@ import socket
 import time
 import os
 
-def test_udp_edge_cases():
+def test_udp_edge_cases(studyc_processes):
     """
     EdgeCase_TestCases.md に定義された UDP 境界値テスト
     ASanによるメモリ破壊検知を期待するため、C言語側のプロセスがクラッシュしなければPASSとする。
@@ -36,3 +36,7 @@ def test_udp_edge_cases():
 
     finally:
         sock.close()
+
+    procs = studyc_processes
+    for name, proc in procs.items():
+        assert proc.poll() is None, f"{name} crashed during UDP edge case tests (exit code: {proc.poll()})"
