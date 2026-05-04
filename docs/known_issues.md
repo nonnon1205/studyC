@@ -1,0 +1,36 @@
+# 既知の問題一覧
+
+CI が整うまで修正を保留している問題を記録する。
+修正着手時はここから削除する。
+
+---
+
+## test_data_pipeline.py に `import subprocess` が欠落
+- **場所**: [tests/e2e/test_data_pipeline.py](../tests/e2e/test_data_pipeline.py)
+- **内容**: `subprocess.TimeoutExpired` を使用しているが `import subprocess` がない。現状テストはインポートエラーで即死する。
+- **優先度**: high
+
+## EdgeCase_TestCases.md のバッファサイズが実装と不一致
+- **場所**: [docs/EdgeCase_TestCases.md](EdgeCase_TestCases.md) — 項目 1-2, 1-3
+- **内容**: テスト基準値が 1023/1024 バイトだが、SHM の `message` フィールドは `char message[256]`。UDP 受信バッファ（1024）と SHM バッファ（256）を混同している。
+- **優先度**: high
+
+## Router/main.c の ENABLE_FAULT_INJECTION ブロックに構文エラー
+- **場所**: [Router/src/main.c:347](../Router/src/main.c#L347)
+- **内容**: `ENABLE_FAULT_INJECTION` 有効時に `}` が余分。cppcheck が `syntaxError` を報告する。
+- **優先度**: medium
+
+## mgmt_handlers.c の constVariablePointer
+- **場所**: [Router/src/mgmt_handlers.c:29, 42](../Router/src/mgmt_handlers.c#L29)
+- **内容**: `RouterMgmtCtx* c` は `const RouterMgmtCtx*` にできる。cppcheck の style 指摘。
+- **優先度**: low
+
+## SIGPIPE 対策未実装
+- **場所**: Router の TCP 送信部分
+- **内容**: Viewer プロセスが死んだとき `send` が SIGPIPE でクラッシュする可能性がある。`MSG_NOSIGNAL` または `SIGPIPE` の無視が必要。EdgeCase_TestCases.md 項目 4-2 参照。
+- **優先度**: medium
+
+## マジックナンバーの散在
+- **場所**: 複数ファイル（ポート番号 7777/8888、バッファサイズ等）
+- **内容**: 共通ヘッダに集約されていない定数が各所に直書きされている。
+- **優先度**: low
