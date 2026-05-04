@@ -21,7 +21,7 @@ jobs:
     - name: Install dependencies (C tools)
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential cppcheck clang-tidy
+        sudo apt-get install -y build-essential cppcheck clang-tidy bear
 
     - name: Set up Python (for E2E tests)
       uses: actions/setup-python@v5
@@ -32,7 +32,7 @@ jobs:
 
     - name: Build project
       run: |
-        make all
+        bear -- make all
         make debug
 
     - name: Static Analysis (cppcheck)
