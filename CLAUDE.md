@@ -176,3 +176,4 @@ if (something_init() < 0) {
 - `docs/APISpecification.text` に旧モジュール名が残っている（未更新）
 - ファイル命名規則の整理（例: `udp_worker.c` → `router_udp_worker.c`）
 - Mgmt 統合済み（Phase 2–5 完了）。GET_METRICS / RESET_METRICS ハンドラは未実装（MetricsHandle の組み込みが必要）
+- `shutdown all` コマンドの実装（`mgmtctl all shutdown` で全プロセスを一括停止する。仕様は `docs/MgmtCtl_CommandSpec.md` を参照）
