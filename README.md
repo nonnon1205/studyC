@@ -28,9 +28,10 @@ C言語システムプログラミングの学習プロジェクト。
 
 ### データフロー
 
-1. **Collector** — UDP ポート 9999 でデータを受信し、共有メモリ (SHM) に書き込む。System V メッセージキュー (IPC key `0x54321`) で Router に通知する。
-2. **Router** — MQ 通知を受け取り、SHM からペイロードを読み出して TCP ポート 7777 へ中継する。
-3. **Viewer** — TCP ポート 7777 を Listen し、受信データをコンソールに表示する。
+1. **Collector** — UDP ポート（デフォルト `9999`）でデータを受信し、共有メモリ (SHM) に書き込む。System V メッセージキュー (IPC key `0x54321`) で Router に通知する。
+2. **Router** — MQ 通知を受け取り、SHM からペイロードを読み出して TCP ポート（デフォルト `7777`）へ中継する。
+3. **Viewer** — TCP ポート（デフォルト `7777`）を Listen し、受信データをコンソールに表示する。
+*(※ 各ポート番号は環境変数で上書き可能です)*
 
 ### 管理インターフェース
 
@@ -97,6 +98,13 @@ make clean
 ```
 
 ---
+### 自動テスト (CI)
+```bash
+make test
+```
+Python (`pytest`) を用いた E2E テストが実行される。  
+また、GitHub Actions により Push 時にビルド・静的解析(`cppcheck`, `clang-tidy`)・E2Eテストが自動実行される。
+
 
 ## 起動と動作確認
 
@@ -117,7 +125,7 @@ make clean
 
 ### 2. テストデータを送信する
 
-UDP ポート 9999 に任意のデータを送ると、Collector → Router → Viewer と転送され Viewer のコンソールに表示される。
+デフォルトの UDP ポート 9999 に任意のデータを送ると、Collector → Router → Viewer と転送され、Viewer のコンソールに表示されます。
 
 ```bash
 # nc を使う例
@@ -167,3 +175,4 @@ journalctl -f -t Collector -t Router -t Viewer
 - ビルドフラグ: `-std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra`
 - ロガーマクロ: `GLOG_INFO / GLOG_ERR / GLOG_FATAL`（`<syslog.h>` の `LOG_*` との衝突を避けるため `GLOG_` プレフィックス）
 - 初期化失敗時はリソースを逆順に解放してプロセスを終了する（縮退起動なし）
+- 堅牢性: TCP切断時の `SIGPIPE` 無視、起動時の IPC キューのパージなど、異常系に対する耐障害性を実装済み。

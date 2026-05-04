@@ -8,7 +8,7 @@
 
 ## フェーズと手順
 
-### Phase 1: 自動テストの土台作り (E2Eテスト) — **一部完了**
+### Phase 1: 自動テストの土台作り (E2Eテスト) — **完了**
 
 | 作業 | 状態 |
 |---|---|
@@ -16,26 +16,18 @@
 | `tests/e2e/` へのディレクトリ配置 | 完了 |
 | `tests/requirements.txt` の配置 | 完了 |
 | Makefile に `make test` ターゲット追加 | 完了 |
-| E2E テストの実行検証 | 完了（テスト失敗を検出・known_issues.md に記録済み） |
-
-**残作業:**
-```makefile
-# Makefile に追加する
-test:
-	pip install -q -r tests/requirements.txt
-	cd tests && pytest e2e/ -v
-```
+| E2E テストの実行検証 | 完了 |
 
 ---
 
-### Phase 2: テスト駆動でのクリティカルな粗の修正 — **未着手**
+### Phase 2: テスト駆動でのクリティカルな粗の修正 — **完了**
 
-1. **ネットワーク異常系対策**: Router プロセスでの TCP 送信時における `SIGPIPE` クラッシュ対策（`MSG_NOSIGNAL` 等の適用）
-2. **マジックナンバーの排除**: `7777`, `8888`, バッファサイズ等を `msg_common.h` などの共通ヘッダに集約
+1. **ネットワーク異常系対策**: RouterプロセスでのTCP送信時における`SIGPIPE`クラッシュ対策、およびプロセス全体の`SIGPIPE`無視設定（完了）
+2. **マジックナンバーの排除**: 共通ヘッダ `network_config.h` への定数集約、および `clang-tidy` の指摘修正（完了）
 
 ---
 
-### Phase 3: CIパイプラインの自動化 — **静的解析のみ完了**
+### Phase 3: CIパイプラインの自動化 — **完了**
 
 | 作業 | 状態 |
 |---|---|
@@ -43,20 +35,8 @@ test:
 | 静的解析 clang-tidy 導入 (`run_clang_tidy.sh` + `.clang-tidy`) | 完了 |
 | CLAUDE.md への静的解析実行ルール追記 | 完了 |
 | 静的解析で発見したバグ修正（`ssize_t`, `snprintf`, `safe_strerror` 等） | 完了 |
-| GitHub Actions ワークフローファイル作成 | **未着手** |
-| push 時の自動パイプライン（ビルド→静的解析→E2E）構築 | **未着手** |
-
-**GitHub Actions 構成イメージ（未着手）:**
-```yaml
-# .github/workflows/ci.yml
-jobs:
-  build-and-test:
-    steps:
-      - run: make all && make debug
-      - run: cppcheck --enable=warning,style --std=c11 ...
-      - run: bash run_clang_tidy.sh
-      - run: make test   # Phase 1 完了後に有効化
-```
+| GitHub Actions ワークフローファイル作成 | 完了 (`.github/workflows/ci.yml`) |
+| push 時の自動パイプライン（ビルド→静的解析→E2E）構築 | 完了 |
 
 ---
 
@@ -76,5 +56,4 @@ jobs:
 今後は「コードを修正する前に、その挙動を保証（またはバグを再現）するテストが存在するか」を意識し、テストと実装をセットで進めること。
 
 ## 次に着手すべき作業
-1. Makefile に `make test` ターゲットを追加し E2E テストを実行できる状態にする（Phase 1 完結）
-2. E2E テストが通ることを確認してから Phase 2（SIGPIPE 対策）に入る
+1. エッジケーステストの自動化実装 (`EdgeCase_TestCases.md` に基づいたE2Eテストへの組み込み)
