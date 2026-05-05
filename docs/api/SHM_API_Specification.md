@@ -53,7 +53,8 @@ bool shm_api_read(ShmHandle handle, int* out_status, char* out_msg);
   - `handle`: APIハンドル
   - `out_status`: ステータスコードを格納するポインタ（不要な場合は `NULL` 可）
   - `out_msg`: メッセージ文字列を格納するバッファ（不要な場合は `NULL` 可）
-- **重大な注意:** `out_msg` には、必ず共有バッファの最大長（256バイト）以上のメモリを渡してください。
+- **重大な注意:** `out_msg` には、必ず共有バッファの最大長（`MAX_PAYLOAD_SIZE` バイト）以上のメモリを渡してください。
+- **内部実装の制約:** 読み出し先バッファサイズが 0 の場合、API はロックを解放して `false` を返します（`(int)(max_len - 1)` の符号なし underflow を防ぐ防衛的ガード）。
 
 ### 3.4. 終了処理
 ```c

@@ -70,7 +70,7 @@ bool handle_stdin_read(int udp_fd) {
 
 // ※ main関数などで shm_handle と ipc_msqid を初期化し、引数として渡してくる想定です
 void handle_udp_read(int udp_fd, int ipc_msqid, ShmHandle shm_handle) {
-    char buffer[1024];
+    char buffer[MAX_PAYLOAD_SIZE];
     struct sockaddr_in cliaddr;
     socklen_t len = sizeof(cliaddr);
 

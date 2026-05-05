@@ -132,9 +132,11 @@ bool shm_api_read(ShmHandle handle, int* out_status, char* out_msg) {
 
     if (out_status) *out_status = handle->shm_ptr->status_code;
     if (out_msg) {
-        // 共有メモリ上のデータがNULL終端されていなくても安全なように、読み取る最大文字数を制限する
         size_t max_len = sizeof(handle->shm_ptr->message);
-        // コピー先バッファサイズ(max_len)と、コピー元からの最大読取文字数(max_len - 1)を両方指定
+        if (max_len < 1) {
+            pthread_mutex_unlock(&handle->shm_ptr->mtx);
+            return false;
+        }
         snprintf(out_msg, max_len, "%.*s", (int)(max_len - 1), handle->shm_ptr->message);
     }
     DBG("SHM読出し: status=%d, msg=\"%s\"", out_status ? *out_status : -1, out_msg ? out_msg : "(null)");
