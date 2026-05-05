@@ -172,7 +172,7 @@ journalctl -f -t Collector -t Router -t Viewer
 
 詳細な設計・規約は [CLAUDE.md](CLAUDE.md) を参照。
 
-- ビルドフラグ: `-std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra`
+- ビルドフラグ: `-std=c17 -D_POSIX_C_SOURCE=200809L -Wall -Wextra`
 - ロガーマクロ: `GLOG_INFO / GLOG_ERR / GLOG_FATAL`（`<syslog.h>` の `LOG_*` との衝突を避けるため `GLOG_` プレフィックス）
 - 初期化失敗時はリソースを逆順に解放してプロセスを終了する（縮退起動なし）
 - 堅牢性: TCP切断時の `SIGPIPE` 無視、起動時の IPC キューのパージなど、異常系に対する耐障害性を実装済み。
