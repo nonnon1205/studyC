@@ -1,0 +1,21 @@
+BasedOnStyle: LLVM
+
+# インデント: タブ・4文字
+UseTab: Always
+TabWidth: 4
+IndentWidth: 4
+
+# 括弧: Allman スタイル（開き括弧を次の行に）
+BreakBeforeBraces: Allman
+
+# ポインタ: int *p スタイル
+PointerAlignment: Right
+
+# 空行: 最大1行
+MaxEmptyLinesToKeep: 1
+
+# 行幅
+ColumnLimit: 80
+
+# インクルードのソートはしない（依存順序が壊れる可能性があるため）
+SortIncludes: Never
