@@ -174,16 +174,15 @@ if (something_init() < 0) {
 
 ## 問題発見時のルール
 
-コードレビューや作業中に問題・改善点を発見した場合、**CI が整うまでは即座に修正せず `docs/project/known_issues.md` に記録する**。
+コードレビューや作業中に問題・改善点を発見した場合、**GitHub Issues に登録する**（`gh issue create` または Web UI）。
+`docs/project/known_issues.md` は廃止し、Issues で一元管理する。
 
-```markdown
-## 問題タイトル
-- **場所**: ファイルパス:行番号
-- **内容**: 何が問題か
-- **優先度**: high / medium / low
-```
+## GitHub Issues 運用ルール
 
-修正は CI（`make test` が通る状態）が整ってから着手する。
+- **登録**: 問題発見時にユーザーまたは Claude が `gh issue create` で登録する
+- **commit**: 修正コミットのメッセージに `Fixes #N` を含める（マージ時に自動クローズ）
+- **push**: ユーザーが行う。Claude は push しない
+- **参照**: `gh issue list` で一覧確認できる
 
 ## 積み残し（既知の未対応事項）
 
