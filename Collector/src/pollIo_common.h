@@ -28,6 +28,6 @@ void handle_udp_read(int udp_fd, int ipc_msqid, ShmHandle shm_handle);
 
 // コアエンジン
 void run_event_loop(int udp_fd, int ipc_msqid, ShmHandle shm_handle,
-                    MgmtSocketHandle mgmt_sock);
+					MgmtSocketHandle mgmt_sock);
 
 #endif

@@ -8,17 +8,18 @@
 
 #ifndef SAFE_STRERROR_DEFINED
 #define SAFE_STRERROR_DEFINED
-static inline const char* safe_strerror(int errnum) {
-    static _Thread_local char errbuf[64];
+static inline const char *safe_strerror(int errnum)
+{
+	static _Thread_local char errbuf[64];
 #if defined(_GNU_SOURCE)
-    const char* p = strerror_r(errnum, errbuf, sizeof(errbuf));
-    if (p != errbuf)
-        snprintf(errbuf, sizeof(errbuf), "%s", p);
+	const char *p = strerror_r(errnum, errbuf, sizeof(errbuf));
+	if (p != errbuf)
+		snprintf(errbuf, sizeof(errbuf), "%s", p);
 #else
-    if (strerror_r(errnum, errbuf, sizeof(errbuf)) != 0)
-        snprintf(errbuf, sizeof(errbuf), "error %d", errnum);
+	if (strerror_r(errnum, errbuf, sizeof(errbuf)) != 0)
+		snprintf(errbuf, sizeof(errbuf), "error %d", errnum);
 #endif
-    return errbuf;
+	return errbuf;
 }
 #endif
 
@@ -32,13 +33,16 @@ static inline const char* safe_strerror(int errnum) {
  */
 
 /* Log Levels (matching syslog levels) */
-typedef enum {
-    ULOG_LEVEL_TRACE   = 0,  /* Most verbose: function entry/exit, variable values */
-    ULOG_LEVEL_DEBUG   = 1,  /* Debug information: state transitions, detailed flow */
-    ULOG_LEVEL_INFO    = 2,  /* Informational: normal operations, milestones */
-    ULOG_LEVEL_WARN    = 3,  /* Warning: potentially problematic situations */
-    ULOG_LEVEL_ERROR   = 4,  /* Error: error conditions that need attention */
-    ULOG_LEVEL_FATAL   = 5   /* Fatal: unrecoverable errors, program shutdown */
+typedef enum
+{
+	ULOG_LEVEL_TRACE =
+		0, /* Most verbose: function entry/exit, variable values */
+	ULOG_LEVEL_DEBUG =
+		1, /* Debug information: state transitions, detailed flow */
+	ULOG_LEVEL_INFO = 2,  /* Informational: normal operations, milestones */
+	ULOG_LEVEL_WARN = 3,  /* Warning: potentially problematic situations */
+	ULOG_LEVEL_ERROR = 4, /* Error: error conditions that need attention */
+	ULOG_LEVEL_FATAL = 5  /* Fatal: unrecoverable errors, program shutdown */
 } UlogLevel;
 
 /* ============================================================================
@@ -46,7 +50,7 @@ typedef enum {
  * ============================================================================
  */
 
-typedef struct UlogContext* UlogHandle;
+typedef struct UlogContext *UlogHandle;
 
 /* ============================================================================
  * Initialization and Configuration
@@ -66,7 +70,7 @@ typedef struct UlogContext* UlogHandle;
  *                      0x04 = include timestamps
  * @return              Logger handle on success, NULL on failure
  */
-UlogHandle ulog_init(const char* ident, UlogLevel level, uint32_t flags);
+UlogHandle ulog_init(const char *ident, UlogLevel level, uint32_t flags);
 
 /**
  * Shutdown the logger and free resources
@@ -101,32 +105,32 @@ UlogLevel ulog_get_level(UlogHandle logger);
  * @param logger        Logger handle
  * @param fmt, ...      printf-style format string
  */
-void ulog_trace(UlogHandle logger, const char* fmt, ...);
+void ulog_trace(UlogHandle logger, const char *fmt, ...);
 
 /**
  * Log a message at DEBUG level
  */
-void ulog_debug(UlogHandle logger, const char* fmt, ...);
+void ulog_debug(UlogHandle logger, const char *fmt, ...);
 
 /**
  * Log a message at INFO level
  */
-void ulog_info(UlogHandle logger, const char* fmt, ...);
+void ulog_info(UlogHandle logger, const char *fmt, ...);
 
 /**
  * Log a message at WARN level
  */
-void ulog_warn(UlogHandle logger, const char* fmt, ...);
+void ulog_warn(UlogHandle logger, const char *fmt, ...);
 
 /**
  * Log a message at ERROR level
  */
-void ulog_error(UlogHandle logger, const char* fmt, ...);
+void ulog_error(UlogHandle logger, const char *fmt, ...);
 
 /**
  * Log a message at FATAL level (does NOT exit)
  */
-void ulog_fatal(UlogHandle logger, const char* fmt, ...);
+void ulog_fatal(UlogHandle logger, const char *fmt, ...);
 
 /* ============================================================================
  * Generic Logging Function
@@ -140,7 +144,7 @@ void ulog_fatal(UlogHandle logger, const char* fmt, ...);
  * @param level         Log level
  * @param fmt, ...      printf-style format string
  */
-void ulog_log(UlogHandle logger, UlogLevel level, const char* fmt, ...);
+void ulog_log(UlogHandle logger, UlogLevel level, const char *fmt, ...);
 
 /* ============================================================================
  * Context-Aware Logging (With Location Info)
@@ -158,9 +162,8 @@ void ulog_log(UlogHandle logger, UlogLevel level, const char* fmt, ...);
  * @param func          Function name
  * @param fmt, ...      printf-style format string
  */
-void ulog_log_at(UlogHandle logger, UlogLevel level,
-                 const char* file, int line, const char* func,
-                 const char* fmt, ...);
+void ulog_log_at(UlogHandle logger, UlogLevel level, const char *file, int line,
+				 const char *func, const char *fmt, ...);
 
 /* ============================================================================
  * Convenience Macros
@@ -170,34 +173,41 @@ void ulog_log_at(UlogHandle logger, UlogLevel level,
 /* Basic macros - use when logger is available */
 #define ULOG_TRACE(log, fmt, ...) ulog_trace(log, fmt, ##__VA_ARGS__)
 #define ULOG_DEBUG(log, fmt, ...) ulog_debug(log, fmt, ##__VA_ARGS__)
-#define ULOG_INFO(log, fmt, ...)  ulog_info(log, fmt, ##__VA_ARGS__)
-#define ULOG_WARN(log, fmt, ...)  ulog_warn(log, fmt, ##__VA_ARGS__)
+#define ULOG_INFO(log, fmt, ...) ulog_info(log, fmt, ##__VA_ARGS__)
+#define ULOG_WARN(log, fmt, ...) ulog_warn(log, fmt, ##__VA_ARGS__)
 #define ULOG_ERROR(log, fmt, ...) ulog_error(log, fmt, ##__VA_ARGS__)
 #define ULOG_FATAL(log, fmt, ...) ulog_fatal(log, fmt, ##__VA_ARGS__)
 
 /* Location-aware macros - include file:line:func */
-#define ULOG_TRACE_AT(log, fmt, ...) \
-    ulog_log_at(log, ULOG_LEVEL_TRACE, __FILE__, __LINE__, __func__, fmt, ##__VA_ARGS__)
-#define ULOG_DEBUG_AT(log, fmt, ...) \
-    ulog_log_at(log, ULOG_LEVEL_DEBUG, __FILE__, __LINE__, __func__, fmt, ##__VA_ARGS__)
-#define ULOG_INFO_AT(log, fmt, ...) \
-    ulog_log_at(log, ULOG_LEVEL_INFO, __FILE__, __LINE__, __func__, fmt, ##__VA_ARGS__)
-#define ULOG_WARN_AT(log, fmt, ...) \
-    ulog_log_at(log, ULOG_LEVEL_WARN, __FILE__, __LINE__, __func__, fmt, ##__VA_ARGS__)
-#define ULOG_ERROR_AT(log, fmt, ...) \
-    ulog_log_at(log, ULOG_LEVEL_ERROR, __FILE__, __LINE__, __func__, fmt, ##__VA_ARGS__)
-#define ULOG_FATAL_AT(log, fmt, ...) \
-    ulog_log_at(log, ULOG_LEVEL_FATAL, __FILE__, __LINE__, __func__, fmt, ##__VA_ARGS__)
+#define ULOG_TRACE_AT(log, fmt, ...)                                           \
+	ulog_log_at(log, ULOG_LEVEL_TRACE, __FILE__, __LINE__, __func__, fmt,      \
+				##__VA_ARGS__)
+#define ULOG_DEBUG_AT(log, fmt, ...)                                           \
+	ulog_log_at(log, ULOG_LEVEL_DEBUG, __FILE__, __LINE__, __func__, fmt,      \
+				##__VA_ARGS__)
+#define ULOG_INFO_AT(log, fmt, ...)                                            \
+	ulog_log_at(log, ULOG_LEVEL_INFO, __FILE__, __LINE__, __func__, fmt,       \
+				##__VA_ARGS__)
+#define ULOG_WARN_AT(log, fmt, ...)                                            \
+	ulog_log_at(log, ULOG_LEVEL_WARN, __FILE__, __LINE__, __func__, fmt,       \
+				##__VA_ARGS__)
+#define ULOG_ERROR_AT(log, fmt, ...)                                           \
+	ulog_log_at(log, ULOG_LEVEL_ERROR, __FILE__, __LINE__, __func__, fmt,      \
+				##__VA_ARGS__)
+#define ULOG_FATAL_AT(log, fmt, ...)                                           \
+	ulog_log_at(log, ULOG_LEVEL_FATAL, __FILE__, __LINE__, __func__, fmt,      \
+				##__VA_ARGS__)
 
 /*
  * Global-logger convenience macros - require log_init() called first.
- * Prefix GLOG_ avoids collisions with syslog(3) constants (LOG_INFO, LOG_ERR, etc.)
+ * Prefix GLOG_ avoids collisions with syslog(3) constants (LOG_INFO, LOG_ERR,
+ * etc.)
  */
 #define GLOG_TRACE(fmt, ...) ULOG_TRACE_AT(log_get_handle(), fmt, ##__VA_ARGS__)
 #define GLOG_DEBUG(fmt, ...) ULOG_DEBUG_AT(log_get_handle(), fmt, ##__VA_ARGS__)
-#define GLOG_INFO(fmt, ...)  ULOG_INFO_AT(log_get_handle(), fmt, ##__VA_ARGS__)
-#define GLOG_WARN(fmt, ...)  ULOG_WARN_AT(log_get_handle(), fmt, ##__VA_ARGS__)
-#define GLOG_ERR(fmt, ...)   ULOG_ERROR_AT(log_get_handle(), fmt, ##__VA_ARGS__)
+#define GLOG_INFO(fmt, ...) ULOG_INFO_AT(log_get_handle(), fmt, ##__VA_ARGS__)
+#define GLOG_WARN(fmt, ...) ULOG_WARN_AT(log_get_handle(), fmt, ##__VA_ARGS__)
+#define GLOG_ERR(fmt, ...) ULOG_ERROR_AT(log_get_handle(), fmt, ##__VA_ARGS__)
 #define GLOG_FATAL(fmt, ...) ULOG_FATAL_AT(log_get_handle(), fmt, ##__VA_ARGS__)
 
 /* ============================================================================
@@ -210,10 +220,11 @@ void ulog_log_at(UlogHandle logger, UlogLevel level,
  *
  * @param logger        Logger handle
  * @param total_logs    Output: total log messages
- * @param dropped_logs  Output: log messages dropped (e.g., due to level filtering)
+ * @param dropped_logs  Output: log messages dropped (e.g., due to level
+ * filtering)
  * @return              0 on success
  */
-int ulog_stats(UlogHandle logger, uint64_t* total_logs, uint64_t* dropped_logs);
+int ulog_stats(UlogHandle logger, uint64_t *total_logs, uint64_t *dropped_logs);
 
 /**
  * Reset logger statistics
@@ -232,7 +243,7 @@ int ulog_stats_reset(UlogHandle logger);
  * @param tag           Tag string (max 32 chars)
  * @return              0 on success
  */
-int ulog_set_context_tag(UlogHandle logger, const char* tag);
+int ulog_set_context_tag(UlogHandle logger, const char *tag);
 
 /* ============================================================================
  * Backward Compatibility with log_wrapper
@@ -249,7 +260,7 @@ UlogHandle log_get_handle(void);
  * Legacy function: log_init (wraps ulog_init)
  * Initializes a default global logger with syslog output
  */
-void log_init(const char* ident);
+void log_init(const char *ident);
 
 /**
  * Legacy function: log_close
@@ -260,8 +271,8 @@ void log_close(void);
  * Legacy functions: log_info, log_warn, log_err
  * These use the default global logger
  */
-void log_info(const char* fmt, ...);
-void log_warn(const char* fmt, ...);
-void log_err(const char* fmt, ...);
+void log_info(const char *fmt, ...);
+void log_warn(const char *fmt, ...);
+void log_err(const char *fmt, ...);
 
 #endif /* UNIFIED_LOGGER_H */

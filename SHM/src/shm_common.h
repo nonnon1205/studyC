@@ -13,11 +13,12 @@
 #define SHM_SIZE sizeof(SharedData)
 
 // 共有メモリ上に配置するデータ構造体
-typedef struct {
-    pthread_mutex_t mtx;    // プロセス間共有Mutex
-    int  status_code;       // 状態コード
-    char message[MAX_PAYLOAD_SIZE];  // メッセージ内容
-    volatile int updated;   // 書き込み完了フラグ
+typedef struct
+{
+	pthread_mutex_t mtx;			// プロセス間共有Mutex
+	int status_code;				// 状態コード
+	char message[MAX_PAYLOAD_SIZE]; // メッセージ内容
+	volatile int updated;			// 書き込み完了フラグ
 } SharedData;
 
 // 関数プロトタイプ（各プロセスで実装）

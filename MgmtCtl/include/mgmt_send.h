@@ -15,9 +15,7 @@
  * @param timeout_ms   recvfrom タイムアウト（ミリ秒）
  * @return 0 on success, -1 on error (timeout / server unreachable)
  */
-int mgmt_send_command(const char* socket_path,
-                      const MgmtCommandRequest* req,
-                      MgmtCommandResponse* resp,
-                      int timeout_ms);
+int mgmt_send_command(const char *socket_path, const MgmtCommandRequest *req,
+					  MgmtCommandResponse *resp, int timeout_ms);
 
 #endif /* MGMT_SEND_H */

@@ -21,22 +21,20 @@
  * @param context   Module-specific context (opaque pointer)
  * @return          0 on success, negative on error
  */
-typedef int (*MgmtEventHandler)(
-    const MgmtCommandRequest* req,
-    MgmtCommandResponse* resp,
-    void* context
-);
+typedef int (*MgmtEventHandler)(const MgmtCommandRequest *req,
+								MgmtCommandResponse *resp, void *context);
 
 /**
  * Handler registry entry
  */
-typedef struct {
-    uint8_t cmd_type;                    /* Command type this handler serves */
-    char module_name[MGMT_MODULE_NAME_SIZE];  /* Module name */
-    MgmtEventHandler handler;            /* Handler function pointer */
-    void* context;                       /* Module context passed to handler */
-    uint32_t invocation_count;           /* Statistics: call count */
-    uint64_t total_latency_us;          /* Statistics: cumulative latency */
+typedef struct
+{
+	uint8_t cmd_type; /* Command type this handler serves */
+	char module_name[MGMT_MODULE_NAME_SIZE]; /* Module name */
+	MgmtEventHandler handler;				 /* Handler function pointer */
+	void *context;			   /* Module context passed to handler */
+	uint32_t invocation_count; /* Statistics: call count */
+	uint64_t total_latency_us; /* Statistics: cumulative latency */
 } EventHandlerEntry;
 
 #define MAX_EVENT_HANDLERS 64
@@ -46,12 +44,13 @@ typedef struct {
  * ============================================================================
  */
 
-typedef struct {
-    EventHandlerEntry entries[MAX_EVENT_HANDLERS];
-    int entry_count;
-    pthread_mutex_t lock;               /* Protects concurrent access */
-    uint32_t total_dispatches;          /* Total command dispatches */
-    uint32_t total_failures;            /* Total dispatch failures */
+typedef struct
+{
+	EventHandlerEntry entries[MAX_EVENT_HANDLERS];
+	int entry_count;
+	pthread_mutex_t lock;	   /* Protects concurrent access */
+	uint32_t total_dispatches; /* Total command dispatches */
+	uint32_t total_failures;   /* Total dispatch failures */
 } EventHandlerRegistry;
 
 /**
@@ -77,10 +76,11 @@ void handler_registry_destroy(void);
  * @param cmd_type      Command type to handle (MgmtCommandType)
  * @param handler       Handler function to invoke
  * @param context       Module-specific context (passed to handler)
- * @return              0 on success, -1 if registry full, -2 if already registered
+ * @return              0 on success, -1 if registry full, -2 if already
+ * registered
  */
-int handler_register(const char* module_name, uint8_t cmd_type,
-                     MgmtEventHandler handler, void* context);
+int handler_register(const char *module_name, uint8_t cmd_type,
+					 MgmtEventHandler handler, void *context);
 
 /**
  * Unregister a handler for a specific module/command combination
@@ -89,7 +89,7 @@ int handler_register(const char* module_name, uint8_t cmd_type,
  * @param cmd_type      Command type
  * @return              0 on success, -1 if not found
  */
-int handler_unregister(const char* module_name, uint8_t cmd_type);
+int handler_unregister(const char *module_name, uint8_t cmd_type);
 
 /**
  * Dispatch a management command to the appropriate handler
@@ -105,8 +105,7 @@ int handler_unregister(const char* module_name, uint8_t cmd_type);
  *                      -2: Handler invocation failed
  *                      -3: Internal error
  */
-int handler_dispatch(const MgmtCommandRequest* req,
-                     MgmtCommandResponse* resp);
+int handler_dispatch(const MgmtCommandRequest *req, MgmtCommandResponse *resp);
 
 /**
  * List all registered handlers (for debugging/view dashboard)
@@ -115,7 +114,7 @@ int handler_dispatch(const MgmtCommandRequest* req,
  * @param buf_size      Size of output buffer
  * @return              Number of handlers listed, or negative on error
  */
-int handler_list(char* buf, size_t buf_size);
+int handler_list(char *buf, size_t buf_size);
 
 /**
  * Get registry statistics
@@ -124,7 +123,7 @@ int handler_list(char* buf, size_t buf_size);
  * @param total_fails   Output: total failed dispatches
  * @return              0 on success
  */
-int handler_stats(uint32_t* total_cmds, uint32_t* total_fails);
+int handler_stats(uint32_t *total_cmds, uint32_t *total_fails);
 
 /**
  * Reset registry statistics

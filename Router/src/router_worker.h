@@ -6,12 +6,13 @@
 #include "shared_ipc.h"
 #include "shm_api.h"
 
-typedef struct {
-    int main_msqid;
-    int ipc_msqid;
-    ShmHandle shm_handle;
+typedef struct
+{
+	int main_msqid;
+	int ipc_msqid;
+	ShmHandle shm_handle;
 } RouterContext;
 
-void* router_worker(void* arg);
+void *router_worker(void *arg);
 
 #endif // ROUTER_WORKER_H

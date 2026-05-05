@@ -7,11 +7,12 @@
 #define SHM_NAME "/studyc_posix_shm"
 
 // 共有メモリ上に配置するデータ構造体
-typedef struct {
-    pthread_mutex_t mtx;    // プロセス間共有Mutex
-    int  status_code;       // 状態コード
-    char message[256];      // メッセージ内容
-    volatile int updated;   // 書き込み完了フラグ
+typedef struct
+{
+	pthread_mutex_t mtx;  // プロセス間共有Mutex
+	int status_code;	  // 状態コード
+	char message[256];	  // メッセージ内容
+	volatile int updated; // 書き込み完了フラグ
 } SharedData;
 
 // 共有メモリのサイズ（構造体のサイズ）

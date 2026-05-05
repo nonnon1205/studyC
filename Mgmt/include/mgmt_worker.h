@@ -12,9 +12,11 @@
  * ============================================================================
  */
 
-typedef struct {
-    const char*  socket_path;   /* UNIX domain socket path (use MGMT_SOCKET_PATH_*) */
-    atomic_bool* keep_running;  /* Points to the module's shutdown flag */
+typedef struct
+{
+	const char
+		*socket_path; /* UNIX domain socket path (use MGMT_SOCKET_PATH_*) */
+	atomic_bool *keep_running; /* Points to the module's shutdown flag */
 } MgmtWorkerArg;
 
 /**
@@ -30,6 +32,6 @@ typedef struct {
  *   };
  *   pthread_create(&t_mgmt, NULL, mgmt_worker, &mgmt_arg);
  */
-void* mgmt_worker(void* arg);
+void *mgmt_worker(void *arg);
 
 #endif /* MGMT_WORKER_H */

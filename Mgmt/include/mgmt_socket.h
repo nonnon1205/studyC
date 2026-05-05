@@ -13,7 +13,7 @@
  * ============================================================================
  */
 
-typedef struct MgmtSocket* MgmtSocketHandle;
+typedef struct MgmtSocket *MgmtSocketHandle;
 
 /* ============================================================================
  * Initialization and Shutdown
@@ -23,10 +23,11 @@ typedef struct MgmtSocket* MgmtSocketHandle;
 /**
  * Create and bind the management socket at the given path.
  *
- * @param socket_path  UNIX domain socket path (use MGMT_SOCKET_PATH_* from mgmt_paths.h)
+ * @param socket_path  UNIX domain socket path (use MGMT_SOCKET_PATH_* from
+ * mgmt_paths.h)
  * @return  Socket handle on success, NULL on failure
  */
-MgmtSocketHandle mgmt_socket_create(const char* socket_path);
+MgmtSocketHandle mgmt_socket_create(const char *socket_path);
 
 /**
  * Destroy the management socket
@@ -79,10 +80,8 @@ int mgmt_socket_process_all(MgmtSocketHandle handle);
  * @param failed_requests   Output: failed request processing
  * @return                  0 on success
  */
-int mgmt_socket_stats(MgmtSocketHandle handle,
-                      uint64_t* total_requests,
-                      uint64_t* total_responses,
-                      uint64_t* failed_requests);
+int mgmt_socket_stats(MgmtSocketHandle handle, uint64_t *total_requests,
+					  uint64_t *total_responses, uint64_t *failed_requests);
 
 /**
  * Reset socket statistics
