@@ -3,9 +3,10 @@
 
 # モジュール固有のコンパイルオプション
 override CFLAGS += -std=c17 -pthread -Iinclude -I../lib/include -MMD -MP $(IFDEF)
-TARGET = Router
-SRCDIR = src
-OBJDIR = obj
+BUILDDIR    = ../build
+TARGET      = $(BUILDDIR)/Router
+SRCDIR      = src
+OBJDIR      = obj
 SRCS = \
 	$(SRCDIR)/main.c \
 	$(SRCDIR)/udp_worker.c \
@@ -23,7 +24,7 @@ LDLIBS      = -lmgmt -lshm -lcommon
 
 all: $(TARGET)
 
-$(TARGET): $(OBJS)
+$(TARGET): $(OBJS) | $(BUILDDIR)
 	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS) $(LDLIBS)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c | $(OBJDIR)
@@ -31,6 +32,9 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c | $(OBJDIR)
 
 $(OBJDIR):
 	mkdir -p $(OBJDIR)
+
+$(BUILDDIR):
+	mkdir -p $(BUILDDIR)
 
 clean:
 	rm -rf $(OBJDIR) $(TARGET) test_common

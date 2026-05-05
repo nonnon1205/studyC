@@ -57,13 +57,14 @@ test-tsan: tsan
 # ASanのデモ用ターゲット
 test-fault-uaf: asan-fault
 	@echo "\n\n💥 AddressSanitizer: Use-After-Free のエラー出力をデモします 💥\n"
-	@./Router/Router --fail-use-after-free || true
+	@./build/Router --fail-use-after-free || true
 
 test-fault-leak: asan-fault
 	@echo "\n\n💧 AddressSanitizer: メモリリークのエラー出力をデモします 💧\n"
-	@ASAN_OPTIONS=detect_leaks=1 ./Router/Router --fail-leak || true
+	@ASAN_OPTIONS=detect_leaks=1 ./build/Router --fail-leak || true
 
 clean:
 	@for dir in $(CLEAN_DIRS); do \
 		$(MAKE) -C $$dir clean; \
 	done
+	rm -rf build/
