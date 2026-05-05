@@ -129,11 +129,8 @@ typedef struct {
 **Claude はコードを変更してビルドが成功したら、必ず以下を実行してからタスク完了を報告すること。**
 
 ```bash
-# 変更したモジュールに対して実行（例: Collector を変更した場合）
-cppcheck --enable=warning,style --std=c11 -ICollector/src -I lib/include Collector/src/
-
-# 全モジュール一括（チェック内容は .clang-tidy で管理）
-bash run_clang_tidy.sh
+# CI の静的解析ステップと同一（cppcheck 全モジュール + clang-tidy）
+make lint
 ```
 
 ## コーディング規約
