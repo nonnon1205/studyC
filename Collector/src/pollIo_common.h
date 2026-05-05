@@ -23,7 +23,6 @@ int setup_udp_socket(uint16_t port);
 void close_udp_socket(int fd);
 
 // ハンドラ系
-bool handle_stdin_read(int udp_fd);
 void handle_udp_read(int udp_fd, int ipc_msqid, ShmHandle shm_handle);
 
 // コアエンジン

@@ -1,7 +1,4 @@
 #define _POSIX_C_SOURCE 200809L
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 #include <poll.h>
 #include <errno.h>
@@ -47,42 +44,6 @@ void close_udp_socket(int fd)
 }
 
 // --- 2. イベントハンドラ系 ---
-bool handle_stdin_read(int udp_fd)
-{
-	char input[256];
-	if (!fgets(input, sizeof(input), stdin))
-		return false;
-	input[strcspn(input, "\n")] = '\0'; // 改行削除
-
-	if (strlen(input) == 0)
-		return true;
-
-	if (strcmp(input, "quit") == 0)
-	{
-		return false; // ループ終了の合図
-	}
-	else if (strncmp(input, "udp ", 4) == 0)
-	{
-		// Router (8888番ポート) にパケットを撃ち込む
-		struct sockaddr_in dest = {0};
-		dest.sin_family = AF_INET;
-		dest.sin_port = htons(UDP_SEND_PORT);
-		inet_pton(AF_INET, "127.0.0.1", &dest.sin_addr);
-
-		const char *payload = input + 4;
-		sendto(udp_fd, payload, strlen(payload), 0, (struct sockaddr *)&dest,
-			   sizeof(dest));
-		GLOG_DEBUG("[UDP送信] Router(8888)へ: %s", payload);
-	}
-	else
-	{
-		GLOG_INFO("コマンド: quit, udp <msg>");
-	}
-	return true;
-}
-
-// ※ main関数などで shm_handle と ipc_msqid
-// を初期化し、引数として渡してくる想定です
 void handle_udp_read(int udp_fd, int ipc_msqid, ShmHandle shm_handle)
 {
 	char buffer[MAX_PAYLOAD_SIZE];
@@ -136,20 +97,17 @@ void handle_udp_read(int udp_fd, int ipc_msqid, ShmHandle shm_handle)
 void run_event_loop(int udp_fd, int ipc_msqid, ShmHandle shm_handle,
 					MgmtSocketHandle mgmt_sock)
 {
-	struct pollfd fds[3];
+	struct pollfd fds[2];
 
-	fds[0].fd = STDIN_FILENO;
+	fds[0].fd = udp_fd;
 	fds[0].events = POLLIN;
 
-	fds[1].fd = udp_fd;
-	fds[1].events = POLLIN;
-
-	int nfds = 2;
+	int nfds = 1;
 	if (mgmt_sock)
 	{
-		fds[2].fd = mgmt_socket_get_fd(mgmt_sock);
-		fds[2].events = POLLIN;
-		nfds = 3;
+		fds[1].fd = mgmt_socket_get_fd(mgmt_sock);
+		fds[1].events = POLLIN;
+		nfds = 2;
 	}
 
 	GLOG_INFO("[Collector] 準備完了 — イベント待機中");
@@ -168,20 +126,10 @@ void run_event_loop(int udp_fd, int ipc_msqid, ShmHandle shm_handle,
 
 		if (fds[0].revents & POLLIN)
 		{
-			if (!handle_stdin_read(udp_fd))
-				break;
-			printf("> ");
-			fflush(stdout);
-		}
-
-		if (fds[1].revents & POLLIN)
-		{
 			handle_udp_read(udp_fd, ipc_msqid, shm_handle);
-			printf("> ");
-			fflush(stdout);
 		}
 
-		if (nfds == 3 && (fds[2].revents & POLLIN))
+		if (nfds == 2 && (fds[1].revents & POLLIN))
 		{
 			mgmt_socket_process_one(mgmt_sock, 0);
 		}
