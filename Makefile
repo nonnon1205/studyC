@@ -39,7 +39,7 @@ $(SUBDIRS):
 	$(MAKE) -C $@ IFDEF="$(IFDEF)"
 
 lint:
-	cppcheck --enable=warning,style --std=c11 -ICommon/include -ISHM/include -IMgmt/include Collector/src Router/src Viewer/src MgmtCtl/src
+	cppcheck --enable=warning,style --std=c17 -ICommon/include -ISHM/include -IMgmt/include Collector/src Router/src Viewer/src MgmtCtl/src
 	bash run_clang_tidy.sh
 
 test: all

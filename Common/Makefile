@@ -2,7 +2,7 @@
 -include ../env.mk
 
 # モジュール固有のコンパイルオプション
-override CFLAGS += -pthread -Iinclude
+override CFLAGS += -std=c17 -pthread -Iinclude
 
 # パス設定
 PREFIX  := $(abspath ..)

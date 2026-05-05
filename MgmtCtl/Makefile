@@ -1,6 +1,6 @@
 -include ../env.mk
 
-override CFLAGS += -std=c11 -D_POSIX_C_SOURCE=200809L -pthread \
+override CFLAGS += -std=c17 -D_POSIX_C_SOURCE=200809L -pthread \
                    -Wall -Wextra -Iinclude -I../lib/include $(IFDEF)
 TARGET  = mgmtctl
 SRCDIR  = src

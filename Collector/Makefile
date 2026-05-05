@@ -2,7 +2,7 @@
 -include ../env.mk
 
 # モジュール固有のコンパイルオプション
-override CFLAGS += -std=c11 -pthread -D_POSIX_C_SOURCE=200809L -Iinclude -I../lib/include
+override CFLAGS += -std=c17 -pthread -D_POSIX_C_SOURCE=200809L -Iinclude -I../lib/include
 SRCDIR = src
 OBJDIR = obj
 TARGET = Collector

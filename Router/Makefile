@@ -2,7 +2,7 @@
 -include ../env.mk
 
 # モジュール固有のコンパイルオプション
-override CFLAGS += -pthread -Iinclude -I../lib/include -MMD -MP $(IFDEF)
+override CFLAGS += -std=c17 -pthread -Iinclude -I../lib/include -MMD -MP $(IFDEF)
 TARGET = Router
 SRCDIR = src
 OBJDIR = obj

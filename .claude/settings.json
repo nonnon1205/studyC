@@ -14,7 +14,8 @@
       "Bash(cppcheck --enable=warning,style --std=c11 -ICollector/src -IMgmt/src -IMgmt/include -IRouter/src -IViewer/src -IMgmtCtl/src -Ilib/include Collector/src/poll_io.c Mgmt/src/mgmt_socket.c Router/src/udp_worker.c Viewer/src/tcp_worker.c Viewer/src/udp_worker.c MgmtCtl/src/main.c)",
       "Bash(make clean *)",
       "Bash(make SHM_IMPL=posix)",
-      "Bash(bash /home/nonno/studyC/run_clang_tidy.sh)"
+      "Bash(bash /home/nonno/studyC/run_clang_tidy.sh)",
+      "Read(//home/nonno/.claude/**)"
     ]
   }
 }

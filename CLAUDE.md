@@ -136,7 +136,7 @@ make lint
 ## コーディング規約
 
 - **スレッドセーフ**: `inet_ntoa` は MT-Unsafe なので `inet_ntop` を使用すること
-- **標準**: `-std=c11 -D_POSIX_C_SOURCE=200809L`
+- **標準**: `-std=c17 -D_POSIX_C_SOURCE=200809L`
 - **警告**: `-Wall -Wextra` でゼロ警告を維持する
 
 ### 初期化失敗時のエラーハンドリング
