@@ -19,7 +19,7 @@ endif
 SUBDIRS      = Common $(SHM_MODULE) Mgmt Collector Router Viewer MgmtCtl
 CLEAN_DIRS   = Common SHM PosixSHM Mgmt Collector Router Viewer MgmtCtl
 
-.PHONY: all debug asan tsan clean lint test test-asan test-tsan asan-fault test-fault-uaf test-fault-leak $(SUBDIRS)
+.PHONY: all debug asan tsan clean lint test test-unit test-asan test-tsan asan-fault test-fault-uaf test-fault-leak $(SUBDIRS)
 
 all: $(SUBDIRS)
 
@@ -41,6 +41,9 @@ $(SUBDIRS):
 lint:
 	cppcheck --enable=warning,style --std=c17 -ICommon/include -ISHM/include -IMgmt/include Collector/src Router/src Viewer/src MgmtCtl/src
 	bash run_clang_tidy.sh
+
+test-unit:
+	$(MAKE) -C tests/unit
 
 test: all
 	python3 -m pip install -q -r tests/requirements.txt
