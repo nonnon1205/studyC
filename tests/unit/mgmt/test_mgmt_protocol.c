@@ -40,6 +40,14 @@ void test_validate_empty_module_returns_false(void)
     TEST_ASSERT_EQUAL(0, mgmt_request_validate(&req));
 }
 
+void test_validate_payload_len_at_max(void)
+{
+    MgmtCommandRequest req;
+    mgmt_request_init(&req, MGMT_CMD_PING, "collector", NULL, 0);
+    req.payload_len = MGMT_PAYLOAD_REQUEST_SIZE;
+    TEST_ASSERT_EQUAL(1, mgmt_request_validate(&req));
+}
+
 void test_validate_payload_len_overflow_returns_false(void)
 {
     MgmtCommandRequest req;
@@ -206,6 +214,17 @@ void test_latency_sub_second(void)
     TEST_ASSERT_EQUAL(500000, mgmt_response_latency_us(&resp));
 }
 
+void test_latency_same_timestamp(void)
+{
+    MgmtCommandResponse resp;
+    memset(&resp, 0, sizeof(resp));
+    resp.request_timestamp.tv_sec  = 1000;
+    resp.request_timestamp.tv_nsec = 0;
+    resp.response_timestamp.tv_sec = 1000;
+    resp.response_timestamp.tv_nsec = 0;
+    TEST_ASSERT_EQUAL(0, mgmt_response_latency_us(&resp));
+}
+
 void test_latency_response_before_request_returns_zero(void)
 {
     MgmtCommandResponse resp;
@@ -259,6 +278,23 @@ void test_init_payload_truncated_at_max(void)
     TEST_ASSERT_EQUAL(MGMT_PAYLOAD_REQUEST_SIZE, req.payload_len);
 }
 
+void test_init_null_payload_len_zero(void)
+{
+    MgmtCommandRequest req;
+    mgmt_request_init(&req, MGMT_CMD_PING, "collector", NULL, 5);
+    TEST_ASSERT_EQUAL(0, req.payload_len);
+}
+
+void test_init_module_name_truncated_null_terminated(void)
+{
+    MgmtCommandRequest req;
+    char long_module[MGMT_MODULE_NAME_SIZE + 10];
+    memset(long_module, 'A', sizeof(long_module) - 1);
+    long_module[sizeof(long_module) - 1] = '\0';
+    mgmt_request_init(&req, MGMT_CMD_PING, long_module, NULL, 0);
+    TEST_ASSERT_EQUAL('\0', req.target_module[MGMT_MODULE_NAME_SIZE - 1]);
+}
+
 void test_init_null_req_does_not_crash(void)
 {
     mgmt_request_init(NULL, MGMT_CMD_PING, "collector", NULL, 0);
@@ -277,6 +313,7 @@ int main(void)
     RUN_TEST(test_validate_valid_request);
     RUN_TEST(test_validate_invalid_cmd_type);
     RUN_TEST(test_validate_empty_module_returns_false);
+    RUN_TEST(test_validate_payload_len_at_max);
     RUN_TEST(test_validate_payload_len_overflow_returns_false);
 
     RUN_TEST(test_result_str_ok);
@@ -305,6 +342,7 @@ int main(void)
     RUN_TEST(test_latency_null_returns_zero);
     RUN_TEST(test_latency_normal);
     RUN_TEST(test_latency_sub_second);
+    RUN_TEST(test_latency_same_timestamp);
     RUN_TEST(test_latency_response_before_request_returns_zero);
 
     RUN_TEST(test_init_sets_cmd_type);
@@ -312,6 +350,8 @@ int main(void)
     RUN_TEST(test_init_null_module_leaves_empty);
     RUN_TEST(test_init_payload_copied);
     RUN_TEST(test_init_payload_truncated_at_max);
+    RUN_TEST(test_init_null_payload_len_zero);
+    RUN_TEST(test_init_module_name_truncated_null_terminated);
     RUN_TEST(test_init_null_req_does_not_crash);
 
     return UNITY_END();
