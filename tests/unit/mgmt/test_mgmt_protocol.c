@@ -63,6 +63,41 @@ void test_result_str_invalid_cmd(void)
                              mgmt_result_str(MGMT_RESULT_INVALID_CMD));
 }
 
+void test_result_str_module_not_found(void)
+{
+    TEST_ASSERT_EQUAL_STRING("MODULE_NOT_FOUND",
+                             mgmt_result_str(MGMT_RESULT_MODULE_NOT_FOUND));
+}
+
+void test_result_str_handler_failed(void)
+{
+    TEST_ASSERT_EQUAL_STRING("HANDLER_FAILED",
+                             mgmt_result_str(MGMT_RESULT_HANDLER_FAILED));
+}
+
+void test_result_str_timeout(void)
+{
+    TEST_ASSERT_EQUAL_STRING("TIMEOUT", mgmt_result_str(MGMT_RESULT_TIMEOUT));
+}
+
+void test_result_str_buffer_overflow(void)
+{
+    TEST_ASSERT_EQUAL_STRING("BUFFER_OVERFLOW",
+                             mgmt_result_str(MGMT_RESULT_BUFFER_OVERFLOW));
+}
+
+void test_result_str_unauthorized(void)
+{
+    TEST_ASSERT_EQUAL_STRING("UNAUTHORIZED",
+                             mgmt_result_str(MGMT_RESULT_UNAUTHORIZED));
+}
+
+void test_result_str_internal_error(void)
+{
+    TEST_ASSERT_EQUAL_STRING("INTERNAL_ERROR",
+                             mgmt_result_str(MGMT_RESULT_INTERNAL_ERROR));
+}
+
 void test_result_str_unknown(void)
 {
     TEST_ASSERT_EQUAL_STRING("UNKNOWN", mgmt_result_str(0xFF));
@@ -77,14 +112,107 @@ void test_command_str_ping(void)
     TEST_ASSERT_EQUAL_STRING("PING", mgmt_command_str(MGMT_CMD_PING));
 }
 
+void test_command_str_set_log_level(void)
+{
+    TEST_ASSERT_EQUAL_STRING("SET_LOG_LEVEL",
+                             mgmt_command_str(MGMT_CMD_SET_LOG_LEVEL));
+}
+
+void test_command_str_get_status(void)
+{
+    TEST_ASSERT_EQUAL_STRING("GET_STATUS",
+                             mgmt_command_str(MGMT_CMD_GET_STATUS));
+}
+
+void test_command_str_get_metrics(void)
+{
+    TEST_ASSERT_EQUAL_STRING("GET_METRICS",
+                             mgmt_command_str(MGMT_CMD_GET_METRICS));
+}
+
+void test_command_str_set_buffer_size(void)
+{
+    TEST_ASSERT_EQUAL_STRING("SET_BUFFER_SIZE",
+                             mgmt_command_str(MGMT_CMD_SET_BUFFER_SIZE));
+}
+
+void test_command_str_enable_profiling(void)
+{
+    TEST_ASSERT_EQUAL_STRING("ENABLE_PROFILING",
+                             mgmt_command_str(MGMT_CMD_ENABLE_PROFILING));
+}
+
+void test_command_str_reset_metrics(void)
+{
+    TEST_ASSERT_EQUAL_STRING("RESET_METRICS",
+                             mgmt_command_str(MGMT_CMD_RESET_METRICS));
+}
+
 void test_command_str_shutdown(void)
 {
     TEST_ASSERT_EQUAL_STRING("SHUTDOWN", mgmt_command_str(MGMT_CMD_SHUTDOWN));
 }
 
+void test_command_str_get_config(void)
+{
+    TEST_ASSERT_EQUAL_STRING("GET_CONFIG",
+                             mgmt_command_str(MGMT_CMD_GET_CONFIG));
+}
+
+void test_command_str_enable_tracing(void)
+{
+    TEST_ASSERT_EQUAL_STRING("ENABLE_TRACING",
+                             mgmt_command_str(MGMT_CMD_ENABLE_TRACING));
+}
+
+void test_command_str_max_boundary(void)
+{
+    TEST_ASSERT_EQUAL_STRING("UNKNOWN", mgmt_command_str(MGMT_CMD_MAX));
+}
+
 void test_command_str_unknown(void)
 {
     TEST_ASSERT_EQUAL_STRING("UNKNOWN", mgmt_command_str(0xFF));
+}
+
+/* ============================================================
+ * mgmt_response_latency_us
+ * ============================================================ */
+
+void test_latency_null_returns_zero(void)
+{
+    TEST_ASSERT_EQUAL(0, mgmt_response_latency_us(NULL));
+}
+
+void test_latency_normal(void)
+{
+    MgmtCommandResponse resp;
+    memset(&resp, 0, sizeof(resp));
+    resp.request_timestamp.tv_sec  = 1000;
+    resp.request_timestamp.tv_nsec = 0;
+    resp.response_timestamp.tv_sec = 1001;
+    resp.response_timestamp.tv_nsec = 0;
+    TEST_ASSERT_EQUAL(1000000, mgmt_response_latency_us(&resp));
+}
+
+void test_latency_sub_second(void)
+{
+    MgmtCommandResponse resp;
+    memset(&resp, 0, sizeof(resp));
+    resp.request_timestamp.tv_sec  = 1000;
+    resp.request_timestamp.tv_nsec = 0;
+    resp.response_timestamp.tv_sec = 1000;
+    resp.response_timestamp.tv_nsec = 500000000; /* 500ms */
+    TEST_ASSERT_EQUAL(500000, mgmt_response_latency_us(&resp));
+}
+
+void test_latency_response_before_request_returns_zero(void)
+{
+    MgmtCommandResponse resp;
+    memset(&resp, 0, sizeof(resp));
+    resp.request_timestamp.tv_sec  = 1001;
+    resp.response_timestamp.tv_sec = 1000;
+    TEST_ASSERT_EQUAL(0, mgmt_response_latency_us(&resp));
 }
 
 /* ============================================================
@@ -153,11 +281,31 @@ int main(void)
 
     RUN_TEST(test_result_str_ok);
     RUN_TEST(test_result_str_invalid_cmd);
+    RUN_TEST(test_result_str_module_not_found);
+    RUN_TEST(test_result_str_handler_failed);
+    RUN_TEST(test_result_str_timeout);
+    RUN_TEST(test_result_str_buffer_overflow);
+    RUN_TEST(test_result_str_unauthorized);
+    RUN_TEST(test_result_str_internal_error);
     RUN_TEST(test_result_str_unknown);
 
     RUN_TEST(test_command_str_ping);
+    RUN_TEST(test_command_str_set_log_level);
+    RUN_TEST(test_command_str_get_status);
+    RUN_TEST(test_command_str_get_metrics);
+    RUN_TEST(test_command_str_set_buffer_size);
+    RUN_TEST(test_command_str_enable_profiling);
+    RUN_TEST(test_command_str_reset_metrics);
     RUN_TEST(test_command_str_shutdown);
+    RUN_TEST(test_command_str_get_config);
+    RUN_TEST(test_command_str_enable_tracing);
+    RUN_TEST(test_command_str_max_boundary);
     RUN_TEST(test_command_str_unknown);
+
+    RUN_TEST(test_latency_null_returns_zero);
+    RUN_TEST(test_latency_normal);
+    RUN_TEST(test_latency_sub_second);
+    RUN_TEST(test_latency_response_before_request_returns_zero);
 
     RUN_TEST(test_init_sets_cmd_type);
     RUN_TEST(test_init_copies_module_name);
