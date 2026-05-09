@@ -384,6 +384,22 @@ void test_resp_init_module_truncated_null_terminated(void)
     TEST_ASSERT_EQUAL('\0', resp.source_module[MGMT_MODULE_NAME_SIZE - 1]);
 }
 
+void test_init_nonnull_payload_zero_len(void)
+{
+    MgmtCommandRequest req;
+    const char dummy[] = "x";
+    mgmt_request_init(&req, MGMT_CMD_PING, "mod", dummy, 0);
+    TEST_ASSERT_EQUAL(0, req.payload_len);
+}
+
+void test_resp_init_nonnull_payload_zero_len(void)
+{
+    MgmtCommandResponse resp;
+    const char dummy[] = "x";
+    mgmt_response_init(&resp, 1, MGMT_RESULT_OK, "mod", dummy, 0);
+    TEST_ASSERT_EQUAL('\0', resp.payload[0]);
+}
+
 /* ============================================================
  * main
  * ============================================================ */
@@ -447,6 +463,8 @@ int main(void)
     RUN_TEST(test_resp_init_payload_len_at_max);
     RUN_TEST(test_resp_init_payload_truncated_at_max);
     RUN_TEST(test_resp_init_module_truncated_null_terminated);
+    RUN_TEST(test_init_nonnull_payload_zero_len);
+    RUN_TEST(test_resp_init_nonnull_payload_zero_len);
 
     return UNITY_END();
 }

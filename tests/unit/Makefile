@@ -22,8 +22,9 @@ coverage: clean $(TESTS)
 	@for t in $(TESTS); do ./$$t; echo ""; done
 	mkdir -p $(COVERAGE_DIR)
 	lcov --capture --directory . --output-file $(COVERAGE_DIR)/lcov.info \
-	     --include "*/Mgmt/src/*"
-	genhtml $(COVERAGE_DIR)/lcov.info --output-directory $(COVERAGE_DIR)/html
+	     --include "*/Mgmt/src/*" --branch-coverage
+	genhtml $(COVERAGE_DIR)/lcov.info --output-directory $(COVERAGE_DIR)/html \
+	     --branch-coverage
 	@echo "Report: $(COVERAGE_DIR)/html/index.html"
 
 clean:

@@ -1,0 +1,286 @@
+        -:    0:Source:../../Mgmt/src/mgmt_protocol.c
+        -:    0:Graph:mgmt/test_mgmt_protocol-mgmt_protocol.gcno
+        -:    0:Data:mgmt/test_mgmt_protocol-mgmt_protocol.gcda
+        -:    0:Runs:1
+        -:    1:#include <string.h>
+        -:    2:#include <time.h>
+        -:    3:#include "mgmt_protocol.h"
+        -:    4:
+        -:    5:#define USEC_PER_SEC 1000000ULL
+        -:    6:
+        -:    7:/**
+        -:    8: * Initialize a management command request
+        -:    9: */
+function mgmt_request_init called 13 returned 100% blocks executed 100%
+       13:   10:void mgmt_request_init(MgmtCommandRequest *req, uint8_t cmd_type,
+        -:   11:					   const char *module, const void *payload, size_t len)
+        -:   12:{
+       13:   13:	if (!req)
+       13:   13-block  0
+branch  0 taken 1 (fallthrough)
+branch  1 taken 12
+        1:   14:		return;
+        1:   14-block  0
+        -:   15:
+       12:   16:	memset(req, 0, sizeof(MgmtCommandRequest));
+        -:   17:
+       12:   18:	req->cmd_type = cmd_type;
+       12:   19:	req->flags = 0;
+       12:   20:	clock_gettime(CLOCK_REALTIME, &req->timestamp);
+       12:   20-block  0
+call    0 returned 12
+        -:   21:
+       12:   22:	if (module)
+branch  0 taken 10 (fallthrough)
+branch  1 taken 2
+        -:   23:	{
+       10:   24:		strncpy(req->target_module, module, MGMT_MODULE_NAME_SIZE - 1);
+       10:   24-block  0
+        -:   25:	}
+        -:   26:
+       12:   27:	if (payload && len > 0)
+       12:   27-block  0
+branch  0 taken 2 (fallthrough)
+branch  1 taken 10
+        2:   27-block  1
+branch  2 taken 2 (fallthrough)
+branch  3 taken 0
+        2:   28:	{
+        2:   29:		size_t copy_len =
+        -:   30:			(len > MGMT_PAYLOAD_REQUEST_SIZE) ? MGMT_PAYLOAD_REQUEST_SIZE : len;
+        2:   31:		memcpy(req->payload, payload, copy_len);
+        2:   32:		req->payload_len = (uint16_t)copy_len;
+        2:   32-block  0
+        -:   33:	}
+        -:   34:	else
+        -:   35:	{
+       10:   36:		req->payload_len = 0;
+       10:   36-block  0
+        -:   37:	}
+        -:   38:}
+        -:   39:
+        -:   40:/**
+        -:   41: * Initialize a management command response
+        -:   42: */
+function mgmt_response_init called 10 returned 100% blocks executed 100%
+       10:   43:void mgmt_response_init(MgmtCommandResponse *resp, uint32_t req_id,
+        -:   44:						uint8_t result, const char *module, const void *payload,
+        -:   45:						size_t len)
+        -:   46:{
+       10:   47:	if (!resp)
+       10:   47-block  0
+branch  0 taken 1 (fallthrough)
+branch  1 taken 9
+        1:   48:		return;
+        1:   48-block  0
+        -:   49:
+        9:   50:	memset(resp, 0, sizeof(MgmtCommandResponse));
+        -:   51:
+        9:   52:	resp->request_id = req_id;
+        9:   53:	resp->result_code = result;
+        9:   54:	clock_gettime(CLOCK_REALTIME, &resp->response_timestamp);
+        9:   54-block  0
+call    0 returned 9
+        -:   55:
+        9:   56:	if (module)
+branch  0 taken 8 (fallthrough)
+branch  1 taken 1
+        -:   57:	{
+        8:   58:		strncpy(resp->source_module, module, MGMT_MODULE_NAME_SIZE - 1);
+        8:   58-block  0
+        -:   59:	}
+        -:   60:
+        9:   61:	if (payload && len > 0)
+        9:   61-block  0
+branch  0 taken 3 (fallthrough)
+branch  1 taken 6
+        3:   61-block  1
+branch  2 taken 3 (fallthrough)
+branch  3 taken 0
+        -:   62:	{
+        3:   63:		size_t copy_len = (len > MGMT_PAYLOAD_RESPONSE_SIZE)
+        -:   64:							  ? MGMT_PAYLOAD_RESPONSE_SIZE
+        -:   65:							  : len;
+        3:   66:		memcpy(resp->payload, payload, copy_len);
+        3:   66-block  0
+        -:   67:	}
+        -:   68:}
+        -:   69:
+        -:   70:/**
+        -:   71: * Calculate latency between request and response
+        -:   72: */
+function mgmt_response_latency_us called 5 returned 100% blocks executed 100%
+        5:   73:uint64_t mgmt_response_latency_us(const MgmtCommandResponse *resp)
+        -:   74:{
+        5:   75:	if (!resp)
+        5:   75-block  0
+branch  0 taken 1 (fallthrough)
+branch  1 taken 4
+        1:   76:		return 0;
+        1:   76-block  0
+        -:   77:
+        4:   78:	uint64_t req_us = (uint64_t)resp->request_timestamp.tv_sec * USEC_PER_SEC +
+        4:   79:					  resp->request_timestamp.tv_nsec / 1000;
+        4:   80:	uint64_t resp_us =
+        4:   81:		(uint64_t)resp->response_timestamp.tv_sec * USEC_PER_SEC +
+        4:   82:		resp->response_timestamp.tv_nsec / 1000;
+        -:   83:
+        4:   84:	return (resp_us > req_us) ? (resp_us - req_us) : 0;
+        4:   84-block  0
+branch  0 taken 2 (fallthrough)
+branch  1 taken 2
+        2:   84-block  1
+        2:   84-block  2
+        4:   84-block  3
+        -:   85:}
+        -:   86:
+        -:   87:/**
+        -:   88: * Validate request structure
+        -:   89: */
+function mgmt_request_validate called 6 returned 100% blocks executed 100%
+        6:   90:int mgmt_request_validate(const MgmtCommandRequest *req)
+        -:   91:{
+        6:   92:	if (!req)
+        6:   92-block  0
+branch  0 taken 1 (fallthrough)
+branch  1 taken 5
+        1:   93:		return 0;
+        1:   93-block  0
+        -:   94:
+        -:   95:	/* Validate command type */
+        5:   96:	if (req->cmd_type >= MGMT_CMD_MAX)
+        5:   96-block  0
+branch  0 taken 1 (fallthrough)
+branch  1 taken 4
+        -:   97:	{
+        1:   98:		return 0;
+        1:   98-block  0
+        -:   99:	}
+        -:  100:
+        -:  101:	/* Validate target module name is set */
+        4:  102:	if (req->target_module[0] == '\0')
+        4:  102-block  0
+branch  0 taken 1 (fallthrough)
+branch  1 taken 3
+        -:  103:	{
+        1:  104:		return 0;
+        1:  104-block  0
+        -:  105:	}
+        -:  106:
+        -:  107:	/* Validate payload length */
+        3:  108:	if (req->payload_len > MGMT_PAYLOAD_REQUEST_SIZE)
+        3:  108-block  0
+branch  0 taken 1 (fallthrough)
+branch  1 taken 2
+        -:  109:	{
+        1:  110:		return 0;
+        1:  110-block  0
+        -:  111:	}
+        -:  112:
+        2:  113:	return 1;
+        2:  113-block  0
+        -:  114:}
+        -:  115:
+        -:  116:/**
+        -:  117: * Convert result code to human-readable string
+        -:  118: */
+function mgmt_result_str called 9 returned 100% blocks executed 100%
+        9:  119:const char *mgmt_result_str(uint8_t code)
+        -:  120:{
+        9:  121:	switch (code)
+        9:  121-block  0
+branch  0 taken 1
+branch  1 taken 1
+branch  2 taken 1
+branch  3 taken 1
+branch  4 taken 1
+branch  5 taken 1
+branch  6 taken 1
+branch  7 taken 1
+branch  8 taken 1
+        -:  122:	{
+        1:  123:	case MGMT_RESULT_OK:
+        1:  124:		return "OK";
+        1:  124-block  0
+        1:  125:	case MGMT_RESULT_INVALID_CMD:
+        1:  126:		return "INVALID_CMD";
+        1:  126-block  0
+        1:  127:	case MGMT_RESULT_MODULE_NOT_FOUND:
+        1:  128:		return "MODULE_NOT_FOUND";
+        1:  128-block  0
+        1:  129:	case MGMT_RESULT_HANDLER_FAILED:
+        1:  130:		return "HANDLER_FAILED";
+        1:  130-block  0
+        1:  131:	case MGMT_RESULT_TIMEOUT:
+        1:  132:		return "TIMEOUT";
+        1:  132-block  0
+        1:  133:	case MGMT_RESULT_BUFFER_OVERFLOW:
+        1:  134:		return "BUFFER_OVERFLOW";
+        1:  134-block  0
+        1:  135:	case MGMT_RESULT_UNAUTHORIZED:
+        1:  136:		return "UNAUTHORIZED";
+        1:  136-block  0
+        1:  137:	case MGMT_RESULT_INTERNAL_ERROR:
+        1:  138:		return "INTERNAL_ERROR";
+        1:  138-block  0
+        1:  139:	default:
+        1:  140:		return "UNKNOWN";
+        1:  140-block  0
+        -:  141:	}
+        -:  142:}
+        -:  143:
+        -:  144:/**
+        -:  145: * Convert command type to human-readable string
+        -:  146: */
+function mgmt_command_str called 12 returned 100% blocks executed 100%
+       12:  147:const char *mgmt_command_str(uint8_t cmd)
+        -:  148:{
+       12:  149:	switch (cmd)
+       12:  149-block  0
+branch  0 taken 1
+branch  1 taken 1
+branch  2 taken 1
+branch  3 taken 1
+branch  4 taken 1
+branch  5 taken 1
+branch  6 taken 1
+branch  7 taken 1
+branch  8 taken 1
+branch  9 taken 1
+branch 10 taken 2
+        -:  150:	{
+        1:  151:	case MGMT_CMD_PING:
+        1:  152:		return "PING";
+        1:  152-block  0
+        1:  153:	case MGMT_CMD_SET_LOG_LEVEL:
+        1:  154:		return "SET_LOG_LEVEL";
+        1:  154-block  0
+        1:  155:	case MGMT_CMD_GET_STATUS:
+        1:  156:		return "GET_STATUS";
+        1:  156-block  0
+        1:  157:	case MGMT_CMD_GET_METRICS:
+        1:  158:		return "GET_METRICS";
+        1:  158-block  0
+        1:  159:	case MGMT_CMD_SET_BUFFER_SIZE:
+        1:  160:		return "SET_BUFFER_SIZE";
+        1:  160-block  0
+        1:  161:	case MGMT_CMD_ENABLE_PROFILING:
+        1:  162:		return "ENABLE_PROFILING";
+        1:  162-block  0
+        1:  163:	case MGMT_CMD_RESET_METRICS:
+        1:  164:		return "RESET_METRICS";
+        1:  164-block  0
+        1:  165:	case MGMT_CMD_SHUTDOWN:
+        1:  166:		return "SHUTDOWN";
+        1:  166-block  0
+        1:  167:	case MGMT_CMD_GET_CONFIG:
+        1:  168:		return "GET_CONFIG";
+        1:  168-block  0
+        1:  169:	case MGMT_CMD_ENABLE_TRACING:
+        1:  170:		return "ENABLE_TRACING";
+        1:  170-block  0
+        2:  171:	default:
+        2:  172:		return "UNKNOWN";
+        2:  172-block  0
+        -:  173:	}
+        -:  174:}
