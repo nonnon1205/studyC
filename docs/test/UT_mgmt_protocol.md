@@ -86,8 +86,25 @@
 
 ---
 
+## mgmt_response_init
+
+| No. | テスト関数名 | 入力条件 | 期待結果 | 種別 |
+|---|---|---|---|---|
+| 41 | `test_resp_init_null_does_not_crash` | `resp = NULL` | クラッシュしない | 異常 |
+| 42 | `test_resp_init_sets_request_id` | `req_id = 42` | `resp.request_id == 42` | 正常 |
+| 43 | `test_resp_init_sets_result_code` | `result = MGMT_RESULT_TIMEOUT` | `resp.result_code == MGMT_RESULT_TIMEOUT` | 正常 |
+| 44 | `test_resp_init_copies_module_name` | `module = "router"` | `resp.source_module == "router"` | 正常 |
+| 45 | `test_resp_init_null_module_leaves_empty` | `module = NULL` | `resp.source_module[0] == '\0'` | 異常 |
+| 46 | `test_resp_init_payload_copied` | `payload = "hello"` | `resp.payload == "hello"` | 正常 |
+| 47 | `test_resp_init_null_payload_no_crash` | `payload = NULL, len = 5` | `resp.payload[0] == '\0'` | 異常 |
+| 48 | `test_resp_init_payload_len_at_max` | `len = MGMT_PAYLOAD_RESPONSE_SIZE`（上限ピッタリ） | 末尾バイトが正常コピー | 境界 |
+| 49 | `test_resp_init_payload_truncated_at_max` | `len = MGMT_PAYLOAD_RESPONSE_SIZE + 64` | 先頭・末尾バイトが正常コピー | 境界 |
+| 50 | `test_resp_init_module_truncated_null_terminated` | `module` の長さ = `MGMT_MODULE_NAME_SIZE + 9` | `source_module[MGMT_MODULE_NAME_SIZE - 1] == '\0'` | 境界 |
+
+---
+
 ## 実行結果
 
 ```
-40 Tests  0 Failures  0 Ignored  OK
+50 Tests  0 Failures  0 Ignored  OK
 ```

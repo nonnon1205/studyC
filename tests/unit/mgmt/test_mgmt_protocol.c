@@ -302,6 +302,89 @@ void test_init_null_req_does_not_crash(void)
 }
 
 /* ============================================================
+ * mgmt_response_init
+ * ============================================================ */
+
+void test_resp_init_null_does_not_crash(void)
+{
+    mgmt_response_init(NULL, 1, MGMT_RESULT_OK, "router", NULL, 0);
+    TEST_PASS();
+}
+
+void test_resp_init_sets_request_id(void)
+{
+    MgmtCommandResponse resp;
+    mgmt_response_init(&resp, 42, MGMT_RESULT_OK, "router", NULL, 0);
+    TEST_ASSERT_EQUAL(42, resp.request_id);
+}
+
+void test_resp_init_sets_result_code(void)
+{
+    MgmtCommandResponse resp;
+    mgmt_response_init(&resp, 1, MGMT_RESULT_TIMEOUT, "router", NULL, 0);
+    TEST_ASSERT_EQUAL(MGMT_RESULT_TIMEOUT, resp.result_code);
+}
+
+void test_resp_init_copies_module_name(void)
+{
+    MgmtCommandResponse resp;
+    mgmt_response_init(&resp, 1, MGMT_RESULT_OK, "router", NULL, 0);
+    TEST_ASSERT_EQUAL_STRING("router", resp.source_module);
+}
+
+void test_resp_init_null_module_leaves_empty(void)
+{
+    MgmtCommandResponse resp;
+    mgmt_response_init(&resp, 1, MGMT_RESULT_OK, NULL, NULL, 0);
+    TEST_ASSERT_EQUAL('\0', resp.source_module[0]);
+}
+
+void test_resp_init_payload_copied(void)
+{
+    MgmtCommandResponse resp;
+    const char payload[] = "hello";
+    mgmt_response_init(&resp, 1, MGMT_RESULT_OK, "router", payload,
+                       sizeof(payload));
+    TEST_ASSERT_EQUAL_STRING("hello", (const char *)resp.payload);
+}
+
+void test_resp_init_null_payload_no_crash(void)
+{
+    MgmtCommandResponse resp;
+    mgmt_response_init(&resp, 1, MGMT_RESULT_OK, "router", NULL, 5);
+    TEST_ASSERT_EQUAL('\0', resp.payload[0]);
+}
+
+void test_resp_init_payload_len_at_max(void)
+{
+    MgmtCommandResponse resp;
+    uint8_t buf[MGMT_PAYLOAD_RESPONSE_SIZE];
+    memset(buf, 0xAB, sizeof(buf));
+    mgmt_response_init(&resp, 1, MGMT_RESULT_OK, "router", buf, sizeof(buf));
+    TEST_ASSERT_EQUAL(0xAB, resp.payload[MGMT_PAYLOAD_RESPONSE_SIZE - 1]);
+}
+
+void test_resp_init_payload_truncated_at_max(void)
+{
+    MgmtCommandResponse resp;
+    uint8_t big[MGMT_PAYLOAD_RESPONSE_SIZE + 64];
+    memset(big, 0xCD, sizeof(big));
+    mgmt_response_init(&resp, 1, MGMT_RESULT_OK, "router", big, sizeof(big));
+    TEST_ASSERT_EQUAL(0xCD, resp.payload[0]);
+    TEST_ASSERT_EQUAL(0xCD, resp.payload[MGMT_PAYLOAD_RESPONSE_SIZE - 1]);
+}
+
+void test_resp_init_module_truncated_null_terminated(void)
+{
+    MgmtCommandResponse resp;
+    char long_module[MGMT_MODULE_NAME_SIZE + 10];
+    memset(long_module, 'B', sizeof(long_module) - 1);
+    long_module[sizeof(long_module) - 1] = '\0';
+    mgmt_response_init(&resp, 1, MGMT_RESULT_OK, long_module, NULL, 0);
+    TEST_ASSERT_EQUAL('\0', resp.source_module[MGMT_MODULE_NAME_SIZE - 1]);
+}
+
+/* ============================================================
  * main
  * ============================================================ */
 
@@ -353,6 +436,17 @@ int main(void)
     RUN_TEST(test_init_null_payload_len_zero);
     RUN_TEST(test_init_module_name_truncated_null_terminated);
     RUN_TEST(test_init_null_req_does_not_crash);
+
+    RUN_TEST(test_resp_init_null_does_not_crash);
+    RUN_TEST(test_resp_init_sets_request_id);
+    RUN_TEST(test_resp_init_sets_result_code);
+    RUN_TEST(test_resp_init_copies_module_name);
+    RUN_TEST(test_resp_init_null_module_leaves_empty);
+    RUN_TEST(test_resp_init_payload_copied);
+    RUN_TEST(test_resp_init_null_payload_no_crash);
+    RUN_TEST(test_resp_init_payload_len_at_max);
+    RUN_TEST(test_resp_init_payload_truncated_at_max);
+    RUN_TEST(test_resp_init_module_truncated_null_terminated);
 
     return UNITY_END();
 }

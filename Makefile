@@ -19,6 +19,8 @@ endif
 SUBDIRS      = Common $(SHM_MODULE) Mgmt Collector Router Viewer MgmtCtl
 CLEAN_DIRS   = Common SHM PosixSHM Mgmt Collector Router Viewer MgmtCtl
 
+CFLAGS ?= -Wall -Wextra
+
 .PHONY: all debug asan tsan clean lint test test-unit test-asan test-tsan asan-fault test-fault-uaf test-fault-leak $(SUBDIRS)
 
 all: $(SUBDIRS)
@@ -36,7 +38,7 @@ tsan: clean
 	$(MAKE) SHM_IMPL=$(SHM_IMPL) IFDEF="-DDEBUG" CC="gcc -fsanitize=thread -g -fno-omit-frame-pointer" all
 
 $(SUBDIRS):
-	$(MAKE) -C $@ IFDEF="$(IFDEF)"
+	$(MAKE) -C $@ IFDEF="$(IFDEF)" CFLAGS="$(CFLAGS)"
 
 lint:
 	cppcheck --enable=warning,style --std=c17 -ICommon/include -ISHM/include -IMgmt/include Collector/src Router/src Viewer/src MgmtCtl/src
