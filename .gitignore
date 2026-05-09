@@ -7,6 +7,7 @@ lib/
 # Executables
 build/
 test_common
+tests/unit/mgmt/test_mgmt_protocol
 
 # Local environment settings
 env.mk
@@ -16,3 +17,8 @@ env.mk
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Coverage artifacts
+*.gcda
+*.gcno
+tests/unit/coverage/
