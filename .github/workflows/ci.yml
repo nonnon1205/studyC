@@ -21,7 +21,8 @@ jobs:
     - name: Install dependencies (C tools)
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential cppcheck clang-tidy bear
+        sudo apt-get install -y build-essential cppcheck clang-tidy bear \
+          libgtest-dev libgmock-dev
 
     - name: Set up Python (for E2E tests)
       uses: actions/setup-python@v5
@@ -32,6 +33,16 @@ jobs:
 
     - name: Build project
       run: bear -- make all
+
+    - name: Run Unit Tests (Unity)
+      run: |
+        make -C tests/unit
+        make -C tests/unit unity-send
+
+    - name: Run Unit Tests (Google Test / Google Mock)
+      run: |
+        make -C tests/unit gtest
+        make -C tests/unit gmock-real
 
     - name: Static Analysis (cppcheck)
       run: |

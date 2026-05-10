@@ -3,7 +3,7 @@
 ## テスト対象ファイル
 
 `Mgmt/src/mgmt_protocol.c`
-テストコード: `tests/unit/mgmt/test_mgmt_protocol.c`
+テストコード: `tests/unit/unity/mgmt/test_mgmt_protocol.c`
 
 ---
 

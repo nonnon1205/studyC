@@ -7,7 +7,11 @@ lib/
 # Executables
 build/
 test_common
-tests/unit/mgmt/test_mgmt_protocol
+tests/unit/unity/mgmt/test_mgmt_protocol
+tests/unit/unity/mgmt/test_mgmt_send_unity
+tests/unit/gtest/mgmt/test_mgmt_protocol_gtest
+tests/unit/gtest/mgmt/test_mgmt_send_gmock
+tests/unit/gtest/mgmt/test_mgmt_send_real_gmock
 
 # Local environment settings
 env.mk
