@@ -5,6 +5,31 @@ C言語システムプログラミングの学習プロジェクト。
 
 ---
 
+## 学習完了状態（2026-05-10）
+
+このプロジェクトは学習目的を達成した時点で完了とした。追加実装は「積み残し」として記録しているが、積極的に進める予定はない。
+
+### 完了フェーズ
+
+| フェーズ | 内容 |
+|---|---|
+| 実装 | Collector / Router / Viewer / SHM / Common / Mgmt / MgmtCtl |
+| ロギング | GLOG_* 2層構造（syslog + DBG）、全モジュール移行 |
+| Mgmt 統合 | Phase 0–5（ライブラリ化・ハンドラ登録・プロトコル・各モジュール統合） |
+| 単体テスト（Unity） | mgmt_protocol.c 52件、mgmt_send.c 5件、ブランチカバレッジ 100% |
+| 単体テスト（GoogleTest / GMock） | mgmt_protocol.c 23件、mgmt_send.c 5件、TEST_P / Death テスト |
+| フレームワーク比較 | CppTest・CMock の評価・学習デモ |
+| CI 組み込み | GitHub Actions（ビルド・静的解析・単体テスト・E2E テスト） |
+
+### 積み残し（対応予定なし）
+
+- `GET_METRICS` / `RESET_METRICS` ハンドラ（MetricsHandle の組み込みが必要）
+- `mgmtctl all shutdown`（全プロセス一括停止）
+- `docs/api/APISpecification.text` の旧モジュール名更新
+- ファイル命名規則の整理（例: `udp_worker.c` → `router_udp_worker.c`）
+
+---
+
 ## アーキテクチャ
 
 ```
@@ -98,12 +123,28 @@ make clean
 ```
 
 ---
-### 自動テスト (CI)
+### 単体テスト
+
+```bash
+# Unity（C）
+make -C tests/unit          # mgmt_protocol.c テスト
+make -C tests/unit unity-send   # mgmt_send.c テスト（--wrap スタブ）
+
+# GoogleTest / GMock（C++）
+make -C tests/unit gtest        # mgmt_protocol.c テスト
+make -C tests/unit gmock-real   # mgmt_send.c テスト（--wrap + GMock）
+```
+
+詳細は [docs/test/Test_Strategy.md](docs/test/Test_Strategy.md) を参照。
+
+### E2E テスト (CI)
+
 ```bash
 make test
 ```
-Python (`pytest`) を用いた E2E テストが実行される。  
-また、GitHub Actions により Push 時にビルド・静的解析(`cppcheck`, `clang-tidy`)・E2Eテストが自動実行される。
+
+Python (`pytest`) を用いた E2E テストが実行される。
+GitHub Actions により Push 時にビルド・静的解析（`cppcheck`, `clang-tidy`）・単体テスト・E2E テストが自動実行される。
 
 
 ## 起動と動作確認
